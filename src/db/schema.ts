@@ -10,7 +10,9 @@ import {
   date,
   time,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm/sql/sql";
 
 /* =========================
    ENUMS
@@ -42,19 +44,25 @@ export const swapStatusEnum = pgEnum("swap_status", [
   "REJECTED",
 ]);
 
+export const dayOfWeekEnum = pgEnum("day_of_week", [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+]);
+
 /* =========================
    ADMIN
 ========================= */
 
 export const admins = pgTable("admins", {
   id: uuid("id").primaryKey().defaultRandom(),
-
   email: varchar("email", { length: 255 }).notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  role: varchar("role", { length: 50 }).notNull().default("ADMIN"),
-
+  password: text("password").notNull(),
+  role: varchar("role", { length: 50 }).notNull().default("admin"),
   status: userStatusEnum("status").default("ACTIVE"),
-
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -65,10 +73,8 @@ export const admins = pgTable("admins", {
 
 export const departments = pgTable("departments", {
   id: uuid("id").primaryKey().defaultRandom(),
-
   name: varchar("name", { length: 255 }).notNull(),
   code: varchar("code", { length: 50 }).notNull().unique(),
-
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -78,24 +84,19 @@ export const departments = pgTable("departments", {
 
 export const teachers = pgTable("teachers", {
   id: uuid("id").primaryKey().defaultRandom(),
-
   employeeId: varchar("employee_id", { length: 100 })
     .notNull()
     .unique(),
-
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   phone: varchar("phone", { length: 20 }),
-
   departmentId: uuid("department_id")
     .notNull()
     .references(() => departments.id),
-
-  passwordHash: text("password_hash").notNull(),
-
+  password: text("password").notNull(),
   status: userStatusEnum("status").default("ACTIVE"),
+  role: varchar("role", { length: 50 }).notNull().default("teacher"),
   verified: boolean("verified").default(false),
-
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -123,7 +124,7 @@ export const students = pgTable("students", {
 
   status: userStatusEnum("status").default("ACTIVE"),
   verified: boolean("verified").default(false),
-
+  role: varchar("role", { length: 50 }).notNull().default("student"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -152,21 +153,47 @@ export const studentFaces = pgTable("student_faces", {
    SECTIONS
 ========================= */
 
-export const sections = pgTable("sections", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const sections = pgTable(
+  "sections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
 
-  departmentId: uuid("department_id")
-    .notNull()
-    .references(() => departments.id),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => departments.id, {
+        onDelete: "restrict",
+      }),
 
-  semester: integer("semester").notNull(),
-  sectionNumber: integer("section_number").notNull(),
+    semester: integer("semester").notNull(),
+    section: integer("section").notNull(),
+    //Display name like "6CSE2"
+    name: varchar("name", { length: 50 }).notNull(),
+    capacity: integer("capacity"),
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    // Enforce semester range
+    semesterRange: check(
+      "semester_range_check",
+      sql`${table.semester} >= 1 AND ${table.semester} <= 10`
+    ),
+    // Prevent duplicate logical section
+    uniqueDepartmentSemesterSection: uniqueIndex(
+      "unique_department_semester_section"
+    ).on(
+      table.departmentId,
+      table.semester,
+      table.section
+    ),
 
-  name: varchar("name", { length: 50 }).notNull(),
-  capacity: integer("capacity"),
-
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    // Prevent duplicate names 
+    uniqueSectionName: uniqueIndex(
+      "unique_section_name"
+    ).on(table.name),
+  })
+);
 
 /* =========================
    SUBJECTS
@@ -197,19 +224,30 @@ export const subjectTeachers = pgTable(
   "subject_teachers",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-
     subjectId: uuid("subject_id")
       .notNull()
-      .references(() => subjects.id),
-
+      .references(() => subjects.id, {
+        onDelete: "cascade",
+      }),
     teacherId: uuid("teacher_id")
       .notNull()
-      .references(() => teachers.id),
+      .references(() => teachers.id, {
+        onDelete: "cascade",
+      }),
+    isActive: boolean("is_active")
+      .default(true)
+      .notNull(),
+    assignedAt: timestamp("assigned_at")
+      .defaultNow()
+      .notNull(),
   },
   (table) => ({
     uniqueSubjectTeacher: uniqueIndex(
       "unique_subject_teacher"
-    ).on(table.subjectId, table.teacherId),
+    ).on(
+      table.subjectId,
+      table.teacherId
+    ),
   })
 );
 
@@ -219,13 +257,11 @@ export const subjectTeachers = pgTable(
 
 export const rooms = pgTable("rooms", {
   id: uuid("id").primaryKey().defaultRandom(),
-
   roomNumber: varchar("room_number", { length: 50 })
     .notNull()
     .unique(),
-
   capacity: integer("capacity"),
-  building: varchar("building", { length: 100 }),
+  block: varchar("block", { length: 100 }),
   floor: integer("floor"),
 });
 
@@ -235,11 +271,9 @@ export const rooms = pgTable("rooms", {
 
 export const sectionRooms = pgTable("section_rooms", {
   id: uuid("id").primaryKey().defaultRandom(),
-
   sectionId: uuid("section_id")
     .notNull()
     .references(() => sections.id),
-
   roomId: uuid("room_id")
     .notNull()
     .references(() => rooms.id),
@@ -251,24 +285,18 @@ export const sectionRooms = pgTable("section_rooms", {
 
 export const timetableSlots = pgTable("timetable_slots", {
   id: uuid("id").primaryKey().defaultRandom(),
-
   sectionId: uuid("section_id")
     .notNull()
     .references(() => sections.id),
-
-  dayOfWeek: integer("day_of_week").notNull(),
-
+  dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
   startTime: time("start_time").notNull(),
   endTime: time("end_time").notNull(),
-
   subjectId: uuid("subject_id")
     .notNull()
     .references(() => subjects.id),
-
   teacherId: uuid("teacher_id")
     .notNull()
     .references(() => teachers.id),
-
   roomId: uuid("room_id").references(() => rooms.id),
 });
 
