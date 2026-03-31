@@ -89,6 +89,7 @@ export const teachers = pgTable("teachers", {
     .unique(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
+  abbreviation: varchar("abbreviation", { length: 10 }).unique(),
   phone: varchar("phone", { length: 20 }),
   departmentId: uuid("department_id")
     .notNull()

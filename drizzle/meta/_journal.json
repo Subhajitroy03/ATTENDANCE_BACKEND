@@ -15,6 +15,13 @@
       "when": 1774938459092,
       "tag": "0001_nebulous_shinko_yamashiro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774947018541,
+      "tag": "0002_motionless_ogun",
+      "breakpoints": true
     }
   ]
 }
