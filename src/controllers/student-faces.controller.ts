@@ -1,22 +1,22 @@
 import type { NextFunction, Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
-import { attendanceService } from "../services/attendance.service.js";
+import { studentFacesService } from "../services/student-faces.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { formatZodIssues } from "../utils/validation.js";
 import {
-	createAttendanceSchema,
-	listAttendanceQuerySchema,
-	updateAttendanceSchema,
-} from "../validators/attendance.validator.js";
+	createStudentFaceSchema,
+	listStudentFacesQuerySchema,
+	updateStudentFaceSchema,
+} from "../validators/student-faces.validator.js";
 
-export const createAttendanceController = async (
+export const createStudentFaceController = async (
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) => {
 	try {
-		const parsed = createAttendanceSchema.safeParse(req.body);
+		const parsed = createStudentFaceSchema.safeParse(req.body);
 		if (!parsed.success) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
 				code: "VALIDATION_ERROR",
@@ -24,25 +24,25 @@ export const createAttendanceController = async (
 			});
 		}
 
-		const record = await attendanceService.createAttendance(parsed.data);
+		const face = await studentFacesService.createStudentFace(parsed.data);
 
 		return res.status(StatusCodes.CREATED).json({
 			success: true,
-			message: "Attendance created successfully",
-			data: record,
+			message: "Student face created successfully",
+			data: face,
 		});
 	} catch (error) {
 		next(error);
 	}
 };
 
-export const getAttendanceController = async (
+export const getStudentFacesController = async (
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) => {
 	try {
-		const parsed = listAttendanceQuerySchema.safeParse(req.query);
+		const parsed = listStudentFacesQuerySchema.safeParse(req.query);
 		if (!parsed.success) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
 				code: "VALIDATION_ERROR",
@@ -50,53 +50,49 @@ export const getAttendanceController = async (
 			});
 		}
 
-		const records = await attendanceService.getAttendance(parsed.data);
+		const faces = await studentFacesService.getStudentFaces(parsed.data);
 
 		return res.status(StatusCodes.OK).json({
 			success: true,
-			message: "Attendance fetched successfully",
-			data: records,
+			message: "Student faces fetched successfully",
+			data: faces,
 		});
 	} catch (error) {
 		next(error);
 	}
 };
 
-export const getAttendanceByIdController = async (
+export const getStudentFaceByIdController = async (
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) => {
 	try {
 		const id = String(req.params.id ?? "");
-		if (!id) {
-			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
-		}
+		if (!id) throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
 
-		const record = await attendanceService.getAttendanceById(id);
+		const face = await studentFacesService.getStudentFaceById(id);
 
 		return res.status(StatusCodes.OK).json({
 			success: true,
-			message: "Attendance fetched successfully",
-			data: record,
+			message: "Student face fetched successfully",
+			data: face,
 		});
 	} catch (error) {
 		next(error);
 	}
 };
 
-export const updateAttendanceController = async (
+export const updateStudentFaceController = async (
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) => {
 	try {
 		const id = String(req.params.id ?? "");
-		if (!id) {
-			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
-		}
+		if (!id) throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
 
-		const parsed = updateAttendanceSchema.safeParse(req.body);
+		const parsed = updateStudentFaceSchema.safeParse(req.body);
 		if (!parsed.success) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
 				code: "VALIDATION_ERROR",
@@ -104,46 +100,43 @@ export const updateAttendanceController = async (
 			});
 		}
 
-		const record = await attendanceService.updateAttendance(id, parsed.data);
+		const face = await studentFacesService.updateStudentFace(id, parsed.data);
 
 		return res.status(StatusCodes.OK).json({
 			success: true,
-			message: "Attendance updated successfully",
-			data: record,
+			message: "Student face updated successfully",
+			data: face,
 		});
 	} catch (error) {
 		next(error);
 	}
 };
 
-export const deleteAttendanceController = async (
+export const deleteStudentFaceController = async (
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) => {
 	try {
 		const id = String(req.params.id ?? "");
-		if (!id) {
-			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
-		}
+		if (!id) throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
 
-		const record = await attendanceService.deleteAttendance(id);
+		const face = await studentFacesService.deleteStudentFace(id);
 
 		return res.status(StatusCodes.OK).json({
 			success: true,
-			message: "Attendance deleted successfully",
-			data: record,
+			message: "Student face deleted successfully",
+			data: face,
 		});
 	} catch (error) {
 		next(error);
 	}
 };
 
-// Backward-compatible export (some files may import this symbol).
-export const attendanceController = {
-	createAttendanceController,
-	getAttendanceController,
-	getAttendanceByIdController,
-	updateAttendanceController,
-	deleteAttendanceController,
+export const studentFacesController = {
+	createStudentFaceController,
+	getStudentFacesController,
+	getStudentFaceByIdController,
+	updateStudentFaceController,
+	deleteStudentFaceController,
 };

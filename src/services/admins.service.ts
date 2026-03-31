@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { asc, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/index.js";
-import { admins } from "../db/schema.js";
+import { admins, students, teachers } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import { assertAotEduEmail, normalizeEmail } from "../utils/email.js";
 import { hashPassword } from "../utils/hashPass.js";
@@ -30,6 +30,16 @@ export interface ListAdminsQuery extends PaginationInput {
 	status?: unknown;
 }
 
+export interface VerifyTeacherInput {
+	teacherId: string;
+	verified?: boolean;
+}
+
+export interface VerifyStudentInput {
+	studentId: string;
+	verified?: boolean;
+}
+
 const adminPublicSelect = {
 	id: admins.id,
 	email: admins.email,
@@ -39,6 +49,36 @@ const adminPublicSelect = {
 	updatedAt: admins.updatedAt,
 };
 
+const teacherVerifySelect = {
+	id: teachers.id,
+	employeeId: teachers.employeeId,
+	name: teachers.name,
+	email: teachers.email,
+	abbreviation: teachers.abbreviation,
+	phone: teachers.phone,
+	departmentId: teachers.departmentId,
+	status: teachers.status,
+	role: teachers.role,
+	verified: teachers.verified,
+	createdAt: teachers.createdAt,
+	updatedAt: teachers.updatedAt,
+};
+
+const studentVerifySelect = {
+	id: students.id,
+	studentId: students.studentId,
+	name: students.name,
+	email: students.email,
+	departmentId: students.departmentId,
+	semester: students.semester,
+	section: students.section,
+	status: students.status,
+	role: students.role,
+	verified: students.verified,
+	createdAt: students.createdAt,
+	updatedAt: students.updatedAt,
+};
+
 async function getAdminOrThrow(id: string) {
 	const rows = await db
 		.select(adminPublicSelect)
@@ -46,6 +86,26 @@ async function getAdminOrThrow(id: string) {
 		.where(eq(admins.id, id))
 		.limit(1);
 	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+	return rows[0];
+}
+
+async function getTeacherOrThrow(id: string) {
+	const rows = await db
+		.select(teacherVerifySelect)
+		.from(teachers)
+		.where(eq(teachers.id, id))
+		.limit(1);
+	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Teacher not found");
+	return rows[0];
+}
+
+async function getStudentOrThrow(id: string) {
+	const rows = await db
+		.select(studentVerifySelect)
+		.from(students)
+		.where(eq(students.id, id))
+		.limit(1);
+	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Student not found");
 	return rows[0];
 }
 
@@ -116,12 +176,40 @@ async function deleteAdmin(id: string) {
 	return deleted;
 }
 
+async function verifyTeacher(input: VerifyTeacherInput) {
+	await getTeacherOrThrow(input.teacherId);
+	const verified = input.verified ?? true;
+
+	const [updated] = await db
+		.update(teachers)
+		.set({ verified, updatedAt: new Date() })
+		.where(eq(teachers.id, input.teacherId))
+		.returning(teacherVerifySelect);
+
+	return updated;
+}
+
+async function verifyStudent(input: VerifyStudentInput) {
+	await getStudentOrThrow(input.studentId);
+	const verified = input.verified ?? true;
+
+	const [updated] = await db
+		.update(students)
+		.set({ verified, updatedAt: new Date() })
+		.where(eq(students.id, input.studentId))
+		.returning(studentVerifySelect);
+
+	return updated;
+}
+
 export const adminsService = {
 	createAdmin,
 	getAdmins,
 	getAdminById,
 	updateAdmin,
 	deleteAdmin,
+	verifyTeacher,
+	verifyStudent,
 	// Aliases (backward compatible)
 	create: createAdmin,
 	list: getAdmins,

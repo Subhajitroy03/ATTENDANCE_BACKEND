@@ -38,3 +38,17 @@ export const updateAdminSchema = z.object({
 });
 
 export type updateAdminSchemaType = z.infer<typeof updateAdminSchema>;
+
+export const verifyTeacherSchema = z.object({
+    teacherId: z.string().min(1, { message: "teacherId is required" }),
+    verified: z.boolean().optional(),
+});
+
+export type verifyTeacherSchemaType = z.infer<typeof verifyTeacherSchema>;
+
+export const verifyStudentSchema = z.object({
+    studentId: z.string().min(1, { message: "studentId is required" }),
+    verified: z.boolean().optional(),
+});
+
+export type verifyStudentSchemaType = z.infer<typeof verifyStudentSchema>;
