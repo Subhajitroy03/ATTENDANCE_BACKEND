@@ -5,9 +5,141 @@ import { adminsService } from "../services/admins.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { formatZodIssues } from "../utils/validation.js";
 import {
+	createAdminSchema,
+	listAdminsQuerySchema,
+	updateAdminSchema,
 	verifyStudentSchema,
 	verifyTeacherSchema,
 } from "../validators/admins.validator.js";
+
+export const createAdminController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const parsed = createAdminSchema.safeParse(req.body);
+		if (!parsed.success) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
+				code: "VALIDATION_ERROR",
+				details: formatZodIssues(parsed.error.issues),
+			});
+		}
+
+		const admin = await adminsService.createAdmin(parsed.data);
+
+		return res.status(StatusCodes.CREATED).json({
+			success: true,
+			message: "Admin created successfully",
+			data: admin,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const getAdminsController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const parsed = listAdminsQuerySchema.safeParse(req.query);
+		if (!parsed.success) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
+				code: "VALIDATION_ERROR",
+				details: formatZodIssues(parsed.error.issues),
+			});
+		}
+
+		const admins = await adminsService.getAdmins(parsed.data);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Admins fetched successfully",
+			data: admins,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const getAdminByIdController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const id = String(req.params.id ?? "");
+		if (!id) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
+		}
+
+		const admin = await adminsService.getAdminById(id);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Admin fetched successfully",
+			data: admin,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const updateAdminController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const id = String(req.params.id ?? "");
+		if (!id) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
+		}
+
+		const parsed = updateAdminSchema.safeParse(req.body);
+		if (!parsed.success) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
+				code: "VALIDATION_ERROR",
+				details: formatZodIssues(parsed.error.issues),
+			});
+		}
+
+		const admin = await adminsService.updateAdmin(id, parsed.data);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Admin updated successfully",
+			data: admin,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const deleteAdminController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const id = String(req.params.id ?? "");
+		if (!id) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
+		}
+
+		const admin = await adminsService.deleteAdmin(id);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Admin deleted successfully",
+			data: admin,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
 
 export const verifyTeacherController = async (
 	req: Request,
@@ -79,6 +211,11 @@ export const verifyStudentController = async (
 
 // Backward-compatible export (some files may import this symbol).
 export const adminsController = {
+	createAdminController,
+	getAdminsController,
+	getAdminByIdController,
+	updateAdminController,
+	deleteAdminController,
 	verifyTeacherController,
 	verifyStudentController,
 };

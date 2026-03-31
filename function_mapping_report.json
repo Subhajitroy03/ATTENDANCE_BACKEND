@@ -1,0 +1,138 @@
+﻿[
+    {
+        "service":  "admins.service.ts",
+        "base":  "admins",
+        "serviceMethodCount":  12,
+        "unusedServiceMethods":  "create, createAdmin, deleteAdmin, getAdminById, getAdmins, getById, list, remove, update, updateAdmin",
+        "controllerHandlerCount":  3,
+        "unroutedControllerHandlers":  "adminsController"
+    },
+    {
+        "service":  "attendance.service.ts",
+        "base":  "attendance",
+        "serviceMethodCount":  11,
+        "unusedServiceMethods":  "create, getById, list, remove, update",
+        "controllerHandlerCount":  7,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "audit-logs.service.ts",
+        "base":  "audit-logs",
+        "serviceMethodCount":  0,
+        "unusedServiceMethods":  "",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "class-sessions.service.ts",
+        "base":  "class-sessions",
+        "serviceMethodCount":  0,
+        "unusedServiceMethods":  "",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "departments.service.ts",
+        "base":  "departments",
+        "serviceMethodCount":  10,
+        "unusedServiceMethods":  "create, getById, list, remove, update",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "notifications.service.ts",
+        "base":  "notifications",
+        "serviceMethodCount":  10,
+        "unusedServiceMethods":  "create, getById, list, remove, update",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "rooms.service.ts",
+        "base":  "rooms",
+        "serviceMethodCount":  10,
+        "unusedServiceMethods":  "create, getById, list, remove, update",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "section-rooms.service.ts",
+        "base":  "section-rooms",
+        "serviceMethodCount":  0,
+        "unusedServiceMethods":  "",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "sections.service.ts",
+        "base":  "sections",
+        "serviceMethodCount":  10,
+        "unusedServiceMethods":  "create, getById, list, remove, update",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "student-faces.service.ts",
+        "base":  "student-faces",
+        "serviceMethodCount":  0,
+        "unusedServiceMethods":  "",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "students.service.ts",
+        "base":  "students",
+        "serviceMethodCount":  12,
+        "unusedServiceMethods":  "create, getById, list, login, remove, update",
+        "controllerHandlerCount":  8,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "subjects.service.ts",
+        "base":  "subjects",
+        "serviceMethodCount":  10,
+        "unusedServiceMethods":  "create, getById, list, remove, update",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "subject-teachers.service.ts",
+        "base":  "subject-teachers",
+        "serviceMethodCount":  0,
+        "unusedServiceMethods":  "",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "swaps.service.ts",
+        "base":  "swaps",
+        "serviceMethodCount":  10,
+        "unusedServiceMethods":  "create, getById, list, remove, update",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "teacher-confirmations.service.ts",
+        "base":  "teacher-confirmations",
+        "serviceMethodCount":  0,
+        "unusedServiceMethods":  "",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "teachers.service.ts",
+        "base":  "teachers",
+        "serviceMethodCount":  12,
+        "unusedServiceMethods":  "create, getById, list, login, remove, update",
+        "controllerHandlerCount":  8,
+        "unroutedControllerHandlers":  ""
+    },
+    {
+        "service":  "timetable.service.ts",
+        "base":  "timetable",
+        "serviceMethodCount":  10,
+        "unusedServiceMethods":  "create, getById, list, remove, update",
+        "controllerHandlerCount":  6,
+        "unroutedControllerHandlers":  "timetableController"
+    }
+]

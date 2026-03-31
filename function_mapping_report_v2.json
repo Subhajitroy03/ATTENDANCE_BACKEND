@@ -1,0 +1,138 @@
+﻿[
+    {
+        "base":  "admins",
+        "serviceFile":  "admins.service.ts",
+        "serviceVar":  "adminsService",
+        "serviceMethods":  "create, createAdmin, deleteAdmin, getAdminById, getAdmins, getById, list, remove, update, updateAdmin, verifyStudent, verifyTeacher",
+        "usedByController":  "verifyStudent, verifyTeacher",
+        "missingInController":  "create, createAdmin, deleteAdmin, getAdminById, getAdmins, getById, list, remove, update, updateAdmin"
+    },
+    {
+        "base":  "attendance",
+        "serviceFile":  "attendance.service.ts",
+        "serviceVar":  "attendanceService",
+        "serviceMethods":  "create, createAttendance, deleteAttendance, getAttendance, getAttendanceById, getById, getMySubjectAttendanceSummary, list, remove, update, updateAttendance",
+        "usedByController":  "createAttendance, deleteAttendance, getAttendance, getAttendanceById, getMySubjectAttendanceSummary, updateAttendance",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "audit-logs",
+        "serviceFile":  "audit-logs.service.ts",
+        "serviceVar":  "auditLogsService",
+        "serviceMethods":  "create, createAuditLog, deleteAuditLog, getAuditLogById, getAuditLogs, getById, list, remove, update, updateAuditLog",
+        "usedByController":  "createAuditLog, deleteAuditLog, getAuditLogById, getAuditLogs, updateAuditLog",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "class-sessions",
+        "serviceFile":  "class-sessions.service.ts",
+        "serviceVar":  "classSessionsService",
+        "serviceMethods":  "create, createClassSession, deleteClassSession, getById, getClassSessionById, getClassSessions, list, remove, update, updateClassSession",
+        "usedByController":  "createClassSession, deleteClassSession, getClassSessionById, getClassSessions, updateClassSession",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "departments",
+        "serviceFile":  "departments.service.ts",
+        "serviceVar":  "departmentsService",
+        "serviceMethods":  "create, createDepartment, deleteDepartment, getById, getDepartmentById, getDepartments, list, remove, update, updateDepartment",
+        "usedByController":  "createDepartment, deleteDepartment, getDepartmentById, getDepartments, updateDepartment",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "notifications",
+        "serviceFile":  "notifications.service.ts",
+        "serviceVar":  "notificationsService",
+        "serviceMethods":  "create, createNotification, deleteNotification, getById, getNotificationById, getNotifications, list, remove, update, updateNotification",
+        "usedByController":  "createNotification, deleteNotification, getNotificationById, getNotifications, updateNotification",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "rooms",
+        "serviceFile":  "rooms.service.ts",
+        "serviceVar":  "roomsService",
+        "serviceMethods":  "create, createRoom, deleteRoom, getById, getRoomById, getRooms, list, remove, update, updateRoom",
+        "usedByController":  "createRoom, deleteRoom, getRoomById, getRooms, updateRoom",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "section-rooms",
+        "serviceFile":  "section-rooms.service.ts",
+        "serviceVar":  "sectionRoomsService",
+        "serviceMethods":  "create, createSectionRoom, deleteSectionRoom, getById, getSectionRoomById, getSectionRooms, list, remove, update, updateSectionRoom",
+        "usedByController":  "createSectionRoom, deleteSectionRoom, getSectionRoomById, getSectionRooms, updateSectionRoom",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "sections",
+        "serviceFile":  "sections.service.ts",
+        "serviceVar":  "sectionsService",
+        "serviceMethods":  "create, createSection, deleteSection, getById, getSectionById, getSections, list, remove, update, updateSection",
+        "usedByController":  "createSection, deleteSection, getSectionById, getSections, updateSection",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "student-faces",
+        "serviceFile":  "student-faces.service.ts",
+        "serviceVar":  "studentFacesService",
+        "serviceMethods":  "create, createStudentFace, deleteStudentFace, getById, getStudentFaceById, getStudentFaces, list, remove, update, updateStudentFace",
+        "usedByController":  "createStudentFace, deleteStudentFace, getStudentFaceById, getStudentFaces, updateStudentFace",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "students",
+        "serviceFile":  "students.service.ts",
+        "serviceVar":  "studentsService",
+        "serviceMethods":  "create, createStudent, deleteStudent, getById, getStudentById, getStudents, list, login, loginStudent, remove, update, updateStudent",
+        "usedByController":  "createStudent, deleteStudent, getStudentById, getStudents, loginStudent, updateStudent",
+        "missingInController":  "create, getById, list, login, remove, update"
+    },
+    {
+        "base":  "subjects",
+        "serviceFile":  "subjects.service.ts",
+        "serviceVar":  "subjectsService",
+        "serviceMethods":  "create, createSubject, deleteSubject, getById, getSubjectById, getSubjects, list, remove, update, updateSubject",
+        "usedByController":  "createSubject, deleteSubject, getSubjectById, getSubjects, updateSubject",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "subject-teachers",
+        "serviceFile":  "subject-teachers.service.ts",
+        "serviceVar":  "subjectTeachersService",
+        "serviceMethods":  "create, createSubjectTeacher, deleteSubjectTeacher, getById, getSubjectTeacherById, getSubjectTeachers, list, remove, update, updateSubjectTeacher",
+        "usedByController":  "createSubjectTeacher, deleteSubjectTeacher, getSubjectTeacherById, getSubjectTeachers, updateSubjectTeacher",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "swaps",
+        "serviceFile":  "swaps.service.ts",
+        "serviceVar":  "swapsService",
+        "serviceMethods":  "create, createSwap, deleteSwap, getById, getSwapById, getSwaps, list, remove, update, updateSwap",
+        "usedByController":  "createSwap, deleteSwap, getSwapById, getSwaps, updateSwap",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "teacher-confirmations",
+        "serviceFile":  "teacher-confirmations.service.ts",
+        "serviceVar":  "teacherConfirmationsService",
+        "serviceMethods":  "create, createTeacherConfirmation, deleteTeacherConfirmation, getById, getTeacherConfirmationById, getTeacherConfirmations, list, remove, update, updateTeacherConfirmation",
+        "usedByController":  "createTeacherConfirmation, deleteTeacherConfirmation, getTeacherConfirmationById, getTeacherConfirmations, updateTeacherConfirmation",
+        "missingInController":  "create, getById, list, remove, update"
+    },
+    {
+        "base":  "teachers",
+        "serviceFile":  "teachers.service.ts",
+        "serviceVar":  "teachersService",
+        "serviceMethods":  "create, createTeacher, deleteTeacher, getById, getTeacherById, getTeachers, list, login, loginTeacher, remove, update, updateTeacher",
+        "usedByController":  "createTeacher, deleteTeacher, getTeacherById, getTeachers, loginTeacher, updateTeacher",
+        "missingInController":  "create, getById, list, login, remove, update"
+    },
+    {
+        "base":  "timetable",
+        "serviceFile":  "timetable.service.ts",
+        "serviceVar":  "timetableService",
+        "serviceMethods":  "create, createTimetableSlot, deleteTimetableSlot, getById, getTimetableSlotById, getTimetableSlots, list, remove, update, updateTimetableSlot",
+        "usedByController":  "createTimetableSlot, deleteTimetableSlot, getTimetableSlotById, getTimetableSlots, updateTimetableSlot",
+        "missingInController":  "create, getById, list, remove, update"
+    }
+]

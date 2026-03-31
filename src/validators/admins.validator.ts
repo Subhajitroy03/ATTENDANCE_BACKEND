@@ -33,11 +33,24 @@ export const updateAdminSchema = z.object({
         .refine((v) => isAotEduEmail(v), { message: "Email must end with @aot.edu.in" })
         .optional(),
     password: z.string().min(8, { message: "Password must be at least 8 characters long" }).optional(),
-}).refine((value) => value.email || value.password, {
-    message: "At least one field (email or password) is required",
+    status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "GRADUATED"]).optional(),
+}).refine((value) => value.email || value.password || value.status, {
+    message: "At least one field (email, password, or status) is required",
 });
 
 export type updateAdminSchemaType = z.infer<typeof updateAdminSchema>;
+
+export const listAdminsQuerySchema = z
+    .object({
+        q: z.string().optional(),
+        status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "GRADUATED"]).optional(),
+        page: z.coerce.number().int().positive().optional(),
+        limit: z.coerce.number().int().positive().optional(),
+        order: z.enum(["asc", "desc"]).optional(),
+    })
+    .passthrough();
+
+export type listAdminsQuerySchemaType = z.infer<typeof listAdminsQuerySchema>;
 
 export const verifyTeacherSchema = z.object({
     teacherId: z.string().min(1, { message: "teacherId is required" }),
