@@ -139,6 +139,28 @@ export const deleteAttendanceController = async (
 	}
 };
 
+export const getMySubjectAttendanceSummaryController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		if (!req.student?.id) {
+			throw new ApiError(StatusCodes.UNAUTHORIZED, "Authentication required");
+		}
+
+		const summary = await attendanceService.getMySubjectAttendanceSummary(req.student.id);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Attendance summary fetched successfully",
+			data: summary,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
 // Backward-compatible export (some files may import this symbol).
 export const attendanceController = {
 	createAttendanceController,
@@ -146,4 +168,5 @@ export const attendanceController = {
 	getAttendanceByIdController,
 	updateAttendanceController,
 	deleteAttendanceController,
+	getMySubjectAttendanceSummaryController,
 };

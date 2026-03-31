@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 import {
 	createTimetableSlotController,
@@ -9,6 +10,8 @@ import {
 } from "../../controllers/timetable.controller.js";
 
 const timetableRouter = Router();
+
+timetableRouter.use(restrictToAdminOnly);
 
 timetableRouter.post("/", createTimetableSlotController);
 timetableRouter.get("/", getTimetableSlotsController);

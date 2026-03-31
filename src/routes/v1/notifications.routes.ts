@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 import {
 	createNotificationController,
@@ -9,6 +10,8 @@ import {
 } from "../../controllers/notifications.controller.js";
 
 const notificationsRouter = Router();
+
+notificationsRouter.use(restrictToAdminOnly);
 
 notificationsRouter.post("/", createNotificationController);
 notificationsRouter.get("/", getNotificationsController);

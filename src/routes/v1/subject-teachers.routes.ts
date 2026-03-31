@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 import {
 	createSubjectTeacherController,
@@ -9,6 +10,8 @@ import {
 } from "../../controllers/subject-teachers.controller.js";
 
 const subjectTeachersRouter = Router();
+
+subjectTeachersRouter.use(restrictToAdminOnly);
 
 subjectTeachersRouter.post("/", createSubjectTeacherController);
 subjectTeachersRouter.get("/", getSubjectTeachersController);

@@ -17,6 +17,7 @@ export interface CreateSectionInput {
 	departmentId: string;
 	semester: number;
 	section: number;
+	classTeacherId?: string | null;
 	name: string;
 	capacity?: number;
 }
@@ -25,6 +26,7 @@ export interface UpdateSectionInput {
 	departmentId?: string;
 	semester?: number;
 	section?: number;
+	classTeacherId?: string | null;
 	name?: string;
 	capacity?: number;
 }

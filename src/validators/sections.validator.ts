@@ -4,6 +4,7 @@ export const createSectionSchema = z.object({
 	departmentId: z.string().uuid(),
 	semester: z.number().int().min(1).max(10),
 	section: z.number().int().min(1),
+	classTeacherId: z.string().uuid().nullable().optional(),
 	name: z.string().min(1),
 	capacity: z.number().int().positive().optional(),
 });
@@ -14,6 +15,7 @@ export const updateSectionSchema = z
 		departmentId: z.string().uuid().optional(),
 		semester: z.number().int().min(1).max(10).optional(),
 		section: z.number().int().min(1).optional(),
+		classTeacherId: z.string().uuid().nullable().optional(),
 		name: z.string().min(1).optional(),
 		capacity: z.number().int().positive().optional(),
 	})

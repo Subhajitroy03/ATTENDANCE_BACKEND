@@ -12,7 +12,16 @@ export const createSwapController = async (
 	next: NextFunction
 ) => {
 	try {
-		const parsed = createSwapSchema.safeParse(req.body);
+		if (!req.teacher?.id) {
+			throw new ApiError(StatusCodes.UNAUTHORIZED, "Authentication required");
+		}
+
+		const parsed = createSwapSchema.safeParse({
+			fromTeacherId: req.teacher.id,
+			toTeacherId: req.body?.toTeacherId,
+			classSessionId: req.body?.classSessionId,
+			status: "PENDING",
+		});
 		if (!parsed.success) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
 				code: "VALIDATION_ERROR",
@@ -38,7 +47,15 @@ export const getSwapsController = async (
 	next: NextFunction
 ) => {
 	try {
-		const parsed = listSwapsQuerySchema.safeParse(req.query);
+		if (!req.teacher?.id) {
+			throw new ApiError(StatusCodes.UNAUTHORIZED, "Authentication required");
+		}
+
+		// Default to swaps requested by the logged-in teacher
+		const parsed = listSwapsQuerySchema.safeParse({
+			...req.query,
+			fromTeacherId: req.teacher.id,
+		});
 		if (!parsed.success) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
 				code: "VALIDATION_ERROR",
@@ -64,12 +81,19 @@ export const getSwapByIdController = async (
 	next: NextFunction
 ) => {
 	try {
+		if (!req.teacher?.id) {
+			throw new ApiError(StatusCodes.UNAUTHORIZED, "Authentication required");
+		}
+
 		const id = String(req.params.id ?? "");
 		if (!id) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
 		}
 
 		const swap = await swapsService.getSwapById(id);
+		if (swap.fromTeacherId !== req.teacher.id && swap.toTeacherId !== req.teacher.id) {
+			throw new ApiError(StatusCodes.FORBIDDEN, "Not allowed to view this swap");
+		}
 
 		return res.status(StatusCodes.OK).json({
 			success: true,
@@ -87,12 +111,23 @@ export const updateSwapController = async (
 	next: NextFunction
 ) => {
 	try {
+		if (!req.teacher?.id) {
+			throw new ApiError(StatusCodes.UNAUTHORIZED, "Authentication required");
+		}
+
 		const id = String(req.params.id ?? "");
 		if (!id) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
 		}
 
-		const parsed = updateSwapSchema.safeParse(req.body);
+		const existing = await swapsService.getSwapById(id);
+		if (existing.toTeacherId !== req.teacher.id) {
+			throw new ApiError(StatusCodes.FORBIDDEN, "Only the receiving teacher can respond to this swap");
+		}
+		if (req.body?.status !== "APPROVED" && req.body?.status !== "REJECTED") {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "status must be APPROVED or REJECTED");
+		}
+		const parsed = updateSwapSchema.safeParse({ status: req.body.status });
 		if (!parsed.success) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
 				code: "VALIDATION_ERROR",
@@ -100,7 +135,10 @@ export const updateSwapController = async (
 			});
 		}
 
-		const swap = await swapsService.updateSwap(id, parsed.data);
+		const swap = await swapsService.updateSwap(id, {
+			...parsed.data,
+			respondedAt: new Date(),
+		});
 
 		return res.status(StatusCodes.OK).json({
 			success: true,
@@ -118,9 +156,17 @@ export const deleteSwapController = async (
 	next: NextFunction
 ) => {
 	try {
+		if (!req.teacher?.id) {
+			throw new ApiError(StatusCodes.UNAUTHORIZED, "Authentication required");
+		}
+
 		const id = String(req.params.id ?? "");
 		if (!id) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
+		}
+		const existing = await swapsService.getSwapById(id);
+		if (existing.fromTeacherId !== req.teacher.id) {
+			throw new ApiError(StatusCodes.FORBIDDEN, "Only the requesting teacher can delete this swap");
 		}
 
 		const swap = await swapsService.deleteSwap(id);

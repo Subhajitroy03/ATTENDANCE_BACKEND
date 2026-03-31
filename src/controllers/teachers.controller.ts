@@ -6,9 +6,66 @@ import { ApiError } from "../utils/ApiError.js";
 import { formatZodIssues } from "../utils/validation.js";
 import {
 	createTeacherSchema,
+	loginTeacherSchema,
 	listTeachersQuerySchema,
 	updateTeacherSchema,
 } from "../validators/teachers.validator.js";
+
+export const registerTeacherController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const parsed = createTeacherSchema.safeParse(req.body);
+		if (!parsed.success) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
+				code: "VALIDATION_ERROR",
+				details: formatZodIssues(parsed.error.issues),
+			});
+		}
+
+		const teacher = await teachersService.createTeacher(parsed.data);
+
+		return res.status(StatusCodes.CREATED).json({
+			success: true,
+			message: "Teacher registered successfully",
+			data: teacher,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const loginTeacherController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const parsed = loginTeacherSchema.safeParse(req.body);
+		if (!parsed.success) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
+				code: "VALIDATION_ERROR",
+				details: formatZodIssues(parsed.error.issues),
+			});
+		}
+
+		const result = await teachersService.loginTeacher(parsed.data);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Teacher logged in successfully",
+			data: {
+				teacher: result.teacher,
+				accessToken: result.accessToken,
+				refreshToken: result.refreshToken,
+			},
+		});
+	} catch (error) {
+		next(error);
+	}
+};
 
 export const createTeacherController = async (
 	req: Request,
@@ -141,6 +198,8 @@ export const deleteTeacherController = async (
 
 // Backward-compatible export (some files may import this symbol).
 export const teachersController = {
+	registerTeacherController,
+	loginTeacherController,
 	createTeacherController,
 	getTeachersController,
 	getTeacherByIdController,

@@ -1,14 +1,23 @@
 import { Router } from "express";
 
 import {
+	loginStudentController,
+	registerStudentController,
 	createStudentController,
 	deleteStudentController,
 	getStudentByIdController,
 	getStudentsController,
 	updateStudentController,
 } from "../../controllers/students.controller.js";
+import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 const studentsRouter = Router();
+
+studentsRouter.post("/register", registerStudentController);
+studentsRouter.post("/login", loginStudentController);
+
+// Everything else is admin-controlled
+studentsRouter.use(restrictToAdminOnly);
 
 studentsRouter.post("/", createStudentController);
 studentsRouter.get("/", getStudentsController);

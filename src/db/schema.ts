@@ -167,6 +167,9 @@ export const sections = pgTable(
 
     semester: integer("semester").notNull(),
     section: integer("section").notNull(),
+    classTeacherId: uuid("class_teacher_id").references(() => teachers.id, {
+      onDelete: "set null",
+    }),
     //Display name like "6CSE2"
     name: varchar("name", { length: 50 }).notNull(),
     capacity: integer("capacity"),
@@ -193,6 +196,11 @@ export const sections = pgTable(
     uniqueSectionName: uniqueIndex(
       "unique_section_name"
     ).on(table.name),
+
+    // Enforce one-to-one assignment between section and class teacher
+    uniqueClassTeacher: uniqueIndex(
+      "unique_sections_class_teacher_id"
+    ).on(table.classTeacherId),
   })
 );
 

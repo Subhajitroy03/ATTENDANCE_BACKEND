@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 import {
 	createSectionRoomController,
@@ -9,6 +10,8 @@ import {
 } from "../../controllers/section-rooms.controller.js";
 
 const sectionRoomsRouter = Router();
+
+sectionRoomsRouter.use(restrictToAdminOnly);
 
 sectionRoomsRouter.post("/", createSectionRoomController);
 sectionRoomsRouter.get("/", getSectionRoomsController);

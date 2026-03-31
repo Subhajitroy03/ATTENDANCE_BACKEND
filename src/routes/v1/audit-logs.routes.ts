@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 import {
 	createAuditLogController,
@@ -9,6 +10,8 @@ import {
 } from "../../controllers/audit-logs.controller.js";
 
 const auditLogsRouter = Router();
+
+auditLogsRouter.use(restrictToAdminOnly);
 
 auditLogsRouter.post("/", createAuditLogController);
 auditLogsRouter.get("/", getAuditLogsController);

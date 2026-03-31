@@ -55,3 +55,12 @@ export const listStudentsQuerySchema = z
 	})
 	.passthrough();
 export type listStudentsQuerySchemaType = z.infer<typeof listStudentsQuerySchema>;
+
+export const loginStudentSchema = z.object({
+	studentId: z.string().min(1, { message: "studentId is required" }),
+	email: z
+		.string()
+		.email({ message: "Invalid email" })
+		.refine((v) => isAotEduEmail(v), { message: "Email must end with @aot.edu.in" }),
+});
+export type loginStudentSchemaType = z.infer<typeof loginStudentSchema>;

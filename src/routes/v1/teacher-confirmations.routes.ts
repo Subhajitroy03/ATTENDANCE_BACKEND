@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 import {
 	createTeacherConfirmationController,
@@ -9,6 +10,8 @@ import {
 } from "../../controllers/teacher-confirmations.controller.js";
 
 const teacherConfirmationsRouter = Router();
+
+teacherConfirmationsRouter.use(restrictToAdminOnly);
 
 teacherConfirmationsRouter.post("/", createTeacherConfirmationController);
 teacherConfirmationsRouter.get("/", getTeacherConfirmationsController);

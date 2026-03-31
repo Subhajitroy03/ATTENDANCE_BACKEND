@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 import {
 	createStudentFaceController,
@@ -9,6 +10,8 @@ import {
 } from "../../controllers/student-faces.controller.js";
 
 const studentFacesRouter = Router();
+
+studentFacesRouter.use(restrictToAdminOnly);
 
 studentFacesRouter.post("/", createStudentFaceController);
 studentFacesRouter.get("/", getStudentFacesController);

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 import {
 	createClassSessionController,
@@ -9,6 +10,8 @@ import {
 } from "../../controllers/class-sessions.controller.js";
 
 const classSessionsRouter = Router();
+
+classSessionsRouter.use(restrictToAdminOnly);
 
 classSessionsRouter.post("/", createClassSessionController);
 classSessionsRouter.get("/", getClassSessionsController);

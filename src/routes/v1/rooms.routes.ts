@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 import {
 	createRoomController,
@@ -9,6 +10,8 @@ import {
 } from "../../controllers/rooms.controller.js";
 
 const roomsRouter = Router();
+
+roomsRouter.use(restrictToAdminOnly);
 
 roomsRouter.post("/", createRoomController);
 roomsRouter.get("/", getRoomsController);

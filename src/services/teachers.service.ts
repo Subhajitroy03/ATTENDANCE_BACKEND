@@ -5,7 +5,8 @@ import { db } from "../db/index.js";
 import { teachers } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import { assertAotEduEmail, normalizeEmail } from "../utils/email.js";
-import { hashPassword } from "../utils/hashPass.js";
+import { comparePassword, hashPassword } from "../utils/hashPass.js";
+import { generateUserTokenPair } from "../utils/jwt.js";
 import {
 	buildSearch,
 	buildWhere,
@@ -44,6 +45,11 @@ export interface ListTeachersQuery extends PaginationInput {
 	verified?: unknown;
 }
 
+export interface LoginTeacherInput {
+	email: string;
+	password: string;
+}
+
 const teacherPublicSelect = {
 	id: teachers.id,
 	employeeId: teachers.employeeId,
@@ -57,6 +63,11 @@ const teacherPublicSelect = {
 	verified: teachers.verified,
 	createdAt: teachers.createdAt,
 	updatedAt: teachers.updatedAt,
+};
+
+const teacherAuthSelect = {
+	...teacherPublicSelect,
+	password: teachers.password,
 };
 
 async function getTeacherOrThrow(id: string) {
@@ -88,6 +99,46 @@ async function createTeacher(input: CreateTeacherInput) {
 		.returning(teacherPublicSelect);
 
 	return created;
+}
+
+async function loginTeacher(input: LoginTeacherInput) {
+	assertAotEduEmail(input.email);
+	const email = normalizeEmail(input.email);
+
+	const rows = await db
+		.select(teacherAuthSelect)
+		.from(teachers)
+		.where(eq(teachers.email, email))
+		.limit(1);
+
+	if (!rows.length) {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+	}
+
+	const teacher = rows[0];
+	const ok = await comparePassword(input.password, teacher.password);
+	if (!ok) {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+	}
+	if (teacher.status !== "ACTIVE") {
+		throw new ApiError(StatusCodes.FORBIDDEN, "Teacher account is not active");
+	}
+	if (!teacher.verified) {
+		throw new ApiError(StatusCodes.FORBIDDEN, "Teacher account is not verified yet");
+	}
+
+	const tokens = generateUserTokenPair({
+		id: teacher.id,
+		email: teacher.email,
+		role: "teacher",
+	});
+
+	// Exclude password from response
+	const { password, ...safeTeacher } = teacher;
+	return {
+		teacher: safeTeacher,
+		...tokens,
+	};
 }
 
 async function getTeachers(query: ListTeachersQuery) {
@@ -152,12 +203,14 @@ async function deleteTeacher(id: string) {
 
 export const teachersService = {
 	createTeacher,
+	loginTeacher,
 	getTeachers,
 	getTeacherById,
 	updateTeacher,
 	deleteTeacher,
 	// Aliases (backward compatible)
 	create: createTeacher,
+	login: loginTeacher,
 	list: getTeachers,
 	getById: getTeacherById,
 	update: updateTeacher,

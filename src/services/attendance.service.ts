@@ -1,8 +1,14 @@
 import { StatusCodes } from "http-status-codes";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, sql, and } from "drizzle-orm";
 
 import { db } from "../db/index.js";
-import { attendance } from "../db/schema.js";
+import {
+	attendance,
+	classSessions,
+	subjects,
+	students,
+	timetableSlots,
+} from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import {
 	buildWhere,
@@ -28,6 +34,23 @@ export interface ListAttendanceQuery extends PaginationInput {
 	studentId?: unknown;
 	status?: unknown;
 	markedBy?: unknown;
+}
+
+export interface StudentSubjectAttendanceSummaryItem {
+	subjectId: string;
+	subjectCode: string;
+	subjectName: string;
+	totalPresent: number;
+	totalClasses: number;
+	percentage: number;
+}
+
+export interface StudentSubjectAttendanceSummary {
+	studentId: string;
+	departmentId: string;
+	semester: number;
+	subjects: StudentSubjectAttendanceSummaryItem[];
+	overallPercentage: number;
 }
 
 async function getAttendanceOrThrow(id: string) {
@@ -83,12 +106,95 @@ async function deleteAttendance(id: string) {
 	return deleted;
 }
 
+async function getMySubjectAttendanceSummary(studentId: string): Promise<StudentSubjectAttendanceSummary> {
+	const studentRows = await db
+		.select({
+			id: students.id,
+			departmentId: students.departmentId,
+			semester: students.semester,
+		})
+		.from(students)
+		.where(eq(students.id, studentId))
+		.limit(1);
+
+	const student = studentRows[0];
+	if (!student) {
+		throw new ApiError(StatusCodes.NOT_FOUND, "Student not found");
+	}
+
+	const rows = await db
+		.select({
+			subjectId: subjects.id,
+			subjectCode: subjects.subjectCode,
+			subjectName: subjects.subjectName,
+			totalClasses: sql<number>`COALESCE(COUNT(${attendance.id}), 0)`,
+			totalPresent: sql<number>`COALESCE(SUM(CASE WHEN ${attendance.status} IN ('PRESENT','LATE') THEN 1 ELSE 0 END), 0)`,
+		})
+		.from(subjects)
+		.leftJoin(
+			timetableSlots,
+			eq(timetableSlots.subjectId, subjects.id)
+		)
+		.leftJoin(
+			classSessions,
+			eq(classSessions.timetableSlotId, timetableSlots.id)
+		)
+		.leftJoin(
+			attendance,
+			and(
+				eq(attendance.classSessionId, classSessions.id),
+				eq(attendance.studentId, studentId)
+			)
+		)
+		.where(
+			and(
+				eq(subjects.departmentId, student.departmentId),
+				eq(subjects.semester, student.semester)
+			)
+		)
+		.groupBy(subjects.id, subjects.subjectCode, subjects.subjectName)
+		.orderBy(asc(subjects.subjectCode));
+
+	const subjectSummaries: StudentSubjectAttendanceSummaryItem[] = rows.map((r) => {
+		const totalClasses = Number(r.totalClasses ?? 0);
+		const totalPresent = Number(r.totalPresent ?? 0);
+		const percentage = totalClasses > 0 ? (totalPresent / totalClasses) * 100 : 0;
+		return {
+			subjectId: r.subjectId,
+			subjectCode: r.subjectCode,
+			subjectName: r.subjectName,
+			totalClasses,
+			totalPresent,
+			percentage: Number(percentage.toFixed(2)),
+		};
+	});
+
+	const withClasses = subjectSummaries.filter((s) => s.totalClasses > 0);
+	const overallPercentage = withClasses.length
+		? Number(
+			(
+				withClasses.reduce((acc, s) => acc + s.percentage, 0) /
+				withClasses.length
+			).toFixed(2)
+		)
+		: 0;
+
+	return {
+		studentId: student.id,
+		departmentId: student.departmentId,
+		semester: student.semester,
+		subjects: subjectSummaries,
+		overallPercentage,
+	};
+}
+
 export const attendanceService = {
 	createAttendance,
 	getAttendance,
 	getAttendanceById,
 	updateAttendance,
 	deleteAttendance,
+	getMySubjectAttendanceSummary,
 	// Aliases (backward compatible)
 	create: createAttendance,
 	list: getAttendance,

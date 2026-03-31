@@ -1,10 +1,11 @@
 import { StatusCodes } from "http-status-codes";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/index.js";
 import { students } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import { assertAotEduEmail, normalizeEmail } from "../utils/email.js";
+import { generateUserTokenPair } from "../utils/jwt.js";
 import {
 	buildSearch,
 	buildWhere,
@@ -44,6 +45,11 @@ export interface ListStudentsQuery extends PaginationInput {
 	verified?: unknown;
 }
 
+export interface LoginStudentInput {
+	studentId: string;
+	email: string;
+}
+
 async function getStudentOrThrow(id: string) {
 	const rows = await db.select().from(students).where(eq(students.id, id)).limit(1);
 	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Student not found");
@@ -65,6 +71,53 @@ async function createStudent(input: CreateStudentInput) {
 		.returning();
 
 	return created;
+}
+
+async function loginStudent(input: LoginStudentInput) {
+	assertAotEduEmail(input.email);
+	const email = normalizeEmail(input.email);
+
+	const rows = await db
+		.select({
+			id: students.id,
+			studentId: students.studentId,
+			name: students.name,
+			email: students.email,
+			departmentId: students.departmentId,
+			semester: students.semester,
+			section: students.section,
+			status: students.status,
+			verified: students.verified,
+			role: students.role,
+			createdAt: students.createdAt,
+			updatedAt: students.updatedAt,
+		})
+		.from(students)
+		.where(and(eq(students.email, email), eq(students.studentId, input.studentId)))
+		.limit(1);
+
+	if (!rows.length) {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+	}
+
+	const student = rows[0];
+	if (student.status !== "ACTIVE") {
+		throw new ApiError(StatusCodes.FORBIDDEN, "Student account is not active");
+	}
+	if (!student.verified) {
+		throw new ApiError(StatusCodes.FORBIDDEN, "Student account is not verified yet");
+	}
+
+	const tokens = generateUserTokenPair({
+		id: student.id,
+		email: student.email,
+		role: "student",
+	});
+
+	return {
+		student,
+		...tokens,
+	};
 }
 
 async function getStudents(query: ListStudentsQuery) {
@@ -129,12 +182,14 @@ async function deleteStudent(id: string) {
 
 export const studentsService = {
 	createStudent,
+	loginStudent,
 	getStudents,
 	getStudentById,
 	updateStudent,
 	deleteStudent,
 	// Aliases (backward compatible)
 	create: createStudent,
+	login: loginStudent,
 	list: getStudents,
 	getById: getStudentById,
 	update: updateStudent,

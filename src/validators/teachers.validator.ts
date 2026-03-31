@@ -55,3 +55,12 @@ export const listTeachersQuerySchema = z
 	})
 	.passthrough();
 export type listTeachersQuerySchemaType = z.infer<typeof listTeachersQuerySchema>;
+
+export const loginTeacherSchema = z.object({
+	email: z
+		.string()
+		.email({ message: "Invalid email" })
+		.refine((v) => isAotEduEmail(v), { message: "Email must end with @aot.edu.in" }),
+	password: z.string().min(1, { message: "password is required" }),
+});
+export type loginTeacherSchemaType = z.infer<typeof loginTeacherSchema>;
