@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { asc, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/index.js";
-import { classSessions } from "../db/schema.js";
+import { classSessions, rooms, sections, subjects, teachers, timetableSlots } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import {
 	buildWhere,
@@ -35,10 +35,101 @@ export interface ListClassSessionsQuery extends PaginationInput {
 	date?: unknown;
 }
 
+const classSessionSelect = {
+	id: classSessions.id,
+	timetableSlotId: classSessions.timetableSlotId,
+	date: classSessions.date,
+	status: classSessions.status,
+	teacherConfirmed: classSessions.teacherConfirmed,
+	startTime: classSessions.startTime,
+	endTime: classSessions.endTime,
+};
+
+const timetableSlotSelect = {
+	id: timetableSlots.id,
+	sectionId: timetableSlots.sectionId,
+	dayOfWeek: timetableSlots.dayOfWeek,
+	startTime: timetableSlots.startTime,
+	endTime: timetableSlots.endTime,
+	subjectId: timetableSlots.subjectId,
+	teacherId: timetableSlots.teacherId,
+	roomId: timetableSlots.roomId,
+};
+
+const sectionSelect = {
+	id: sections.id,
+	departmentId: sections.departmentId,
+	semester: sections.semester,
+	section: sections.section,
+	classTeacherId: sections.classTeacherId,
+	name: sections.name,
+	capacity: sections.capacity,
+	createdAt: sections.createdAt,
+};
+
+const subjectSelect = {
+	id: subjects.id,
+	subjectCode: subjects.subjectCode,
+	subjectName: subjects.subjectName,
+	departmentId: subjects.departmentId,
+	semester: subjects.semester,
+	credits: subjects.credits,
+};
+
+const teacherSelect = {
+	id: teachers.id,
+	employeeId: teachers.employeeId,
+	name: teachers.name,
+	email: teachers.email,
+	abbreviation: teachers.abbreviation,
+	phone: teachers.phone,
+	photo: teachers.photo,
+	departmentId: teachers.departmentId,
+	status: teachers.status,
+	role: teachers.role,
+	verified: teachers.verified,
+	createdAt: teachers.createdAt,
+	updatedAt: teachers.updatedAt,
+};
+
+const roomSelect = {
+	id: rooms.id,
+	roomNumber: rooms.roomNumber,
+	capacity: rooms.capacity,
+	block: rooms.block,
+	floor: rooms.floor,
+};
+
 async function getSessionOrThrow(id: string) {
-	const rows = await db.select().from(classSessions).where(eq(classSessions.id, id)).limit(1);
+	const rows = await db
+		.select({
+			session: classSessionSelect,
+			timetableSlot: timetableSlotSelect,
+			section: sectionSelect,
+			subject: subjectSelect,
+			teacher: teacherSelect,
+			room: roomSelect,
+		})
+		.from(classSessions)
+		.innerJoin(timetableSlots, eq(classSessions.timetableSlotId, timetableSlots.id))
+		.innerJoin(sections, eq(timetableSlots.sectionId, sections.id))
+		.innerJoin(subjects, eq(timetableSlots.subjectId, subjects.id))
+		.innerJoin(teachers, eq(timetableSlots.teacherId, teachers.id))
+		.leftJoin(rooms, eq(timetableSlots.roomId, rooms.id))
+		.where(eq(classSessions.id, id))
+		.limit(1);
 	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Class session not found");
-	return rows[0];
+	const row = rows[0];
+	return {
+		...row.session,
+		timetableSlot: {
+			...row.timetableSlot,
+			section: row.section,
+			subject: row.subject,
+			teacher: row.teacher,
+			room: row.room,
+		},
+	};
 }
 
 async function createClassSession(input: CreateClassSessionInput) {
@@ -61,12 +152,36 @@ async function getClassSessions(query: ListClassSessionsQuery) {
 	);
 
 	return await db
-		.select()
+		.select({
+			session: classSessionSelect,
+			timetableSlot: timetableSlotSelect,
+			section: sectionSelect,
+			subject: subjectSelect,
+			teacher: teacherSelect,
+			room: roomSelect,
+		})
 		.from(classSessions)
+		.innerJoin(timetableSlots, eq(classSessions.timetableSlotId, timetableSlots.id))
+		.innerJoin(sections, eq(timetableSlots.sectionId, sections.id))
+		.innerJoin(subjects, eq(timetableSlots.subjectId, subjects.id))
+		.innerJoin(teachers, eq(timetableSlots.teacherId, teachers.id))
+		.leftJoin(rooms, eq(timetableSlots.roomId, rooms.id))
 		.where(where)
 		.orderBy(order === "asc" ? asc(classSessions.date) : desc(classSessions.date))
 		.limit(limit)
-		.offset(offset);
+		.offset(offset)
+		.then((rows) =>
+			rows.map((row) => ({
+				...row.session,
+				timetableSlot: {
+					...row.timetableSlot,
+					section: row.section,
+					subject: row.subject,
+					teacher: row.teacher,
+					room: row.room,
+				},
+			}))
+		);
 }
 
 async function getClassSessionById(id: string) {

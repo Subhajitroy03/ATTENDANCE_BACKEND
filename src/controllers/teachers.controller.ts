@@ -3,6 +3,7 @@ import { StatusCodes } from "http-status-codes";
 
 import { teachersService } from "../services/teachers.service.js";
 import { ApiError } from "../utils/ApiError.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { formatZodIssues } from "../utils/validation.js";
 import {
 	createTeacherSchema,
@@ -12,13 +13,25 @@ import {
 	updateTeacherSchema,
 } from "../validators/teachers.validator.js";
 
+const buildTeacherPayload = async (req: Request) => {
+	const cloudinaryPhoto = req.file?.path
+		? await uploadOnCloudinary(req.file.path)
+		: undefined;
+
+	return {
+		...req.body,
+		...(cloudinaryPhoto ? { photo: cloudinaryPhoto } : {}),
+	};
+};
+
 export const registerTeacherController = async (
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) => {
 	try {
-		const parsed = createTeacherSchema.safeParse(req.body);
+		const payload = await buildTeacherPayload(req);
+		const parsed = createTeacherSchema.safeParse(payload);
 		if (!parsed.success) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
 				code: "VALIDATION_ERROR",
@@ -100,7 +113,8 @@ export const createTeacherController = async (
 	next: NextFunction
 ) => {
 	try {
-		const parsed = createTeacherSchema.safeParse(req.body);
+		const payload = await buildTeacherPayload(req);
+		const parsed = createTeacherSchema.safeParse(payload);
 		if (!parsed.success) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
 				code: "VALIDATION_ERROR",
@@ -180,7 +194,8 @@ export const updateTeacherController = async (
 			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
 		}
 
-		const parsed = updateTeacherSchema.safeParse(req.body);
+		const payload = await buildTeacherPayload(req);
+		const parsed = updateTeacherSchema.safeParse(payload);
 		if (!parsed.success) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
 				code: "VALIDATION_ERROR",

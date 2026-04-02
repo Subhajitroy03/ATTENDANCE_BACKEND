@@ -15,9 +15,8 @@ export const createStudentSchema = z.object({
 		.string()
 		.email({ message: "Invalid email" })
 		.refine((v) => isAotEduEmail(v), { message: "Email must end with @aot.edu.in" }),
-	departmentId: z.string().uuid({ message: "Invalid departmentId" }),
-	semester: z.number().int().min(1).max(10),
-	section: z.string().min(1),
+	sectionId: z.string().uuid({ message: "Invalid sectionId" }),
+	photo: z.string().url().optional(),
 });
 export type createStudentSchemaType = z.infer<typeof createStudentSchema>;
 
@@ -30,9 +29,8 @@ export const updateStudentSchema = z
 			.email({ message: "Invalid email" })
 			.refine((v) => isAotEduEmail(v), { message: "Email must end with @aot.edu.in" })
 			.optional(),
-		departmentId: z.string().uuid().optional(),
-		semester: z.number().int().min(1).max(10).optional(),
-		section: z.string().min(1).optional(),
+		sectionId: z.string().uuid().optional(),
+		photo: z.string().url().optional(),
 		status: studentStatusSchema.optional(),
 		verified: z.boolean().optional(),
 	})
@@ -44,9 +42,7 @@ export type updateStudentSchemaType = z.infer<typeof updateStudentSchema>;
 export const listStudentsQuerySchema = z
 	.object({
 		q: z.string().optional(),
-		departmentId: z.string().uuid().optional(),
-		semester: z.coerce.number().int().min(1).max(10).optional(),
-		section: z.string().optional(),
+		sectionId: z.string().uuid().optional(),
 		status: studentStatusSchema.optional(),
 		verified: z.coerce.boolean().optional(),
 		page: z.coerce.number().int().positive().optional(),

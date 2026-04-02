@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { asc, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/index.js";
-import { subjects } from "../db/schema.js";
+import { departments, subjects } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import {
 	buildSearch,
@@ -35,10 +35,38 @@ export interface ListSubjectsQuery extends PaginationInput {
 	semester?: unknown;
 }
 
+const subjectSelect = {
+	id: subjects.id,
+	subjectCode: subjects.subjectCode,
+	subjectName: subjects.subjectName,
+	departmentId: subjects.departmentId,
+	semester: subjects.semester,
+	credits: subjects.credits,
+};
+
+const departmentSelect = {
+	id: departments.id,
+	name: departments.name,
+	code: departments.code,
+	createdAt: departments.createdAt,
+};
+
 async function getSubjectOrThrow(id: string) {
-	const rows = await db.select().from(subjects).where(eq(subjects.id, id)).limit(1);
+	const rows = await db
+		.select({
+			subject: subjectSelect,
+			department: departmentSelect,
+		})
+		.from(subjects)
+		.innerJoin(departments, eq(subjects.departmentId, departments.id))
+		.where(eq(subjects.id, id))
+		.limit(1);
 	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Subject not found");
-	return rows[0];
+	const row = rows[0];
+	return {
+		...row.subject,
+		department: row.department,
+	};
 }
 
 async function createSubject(input: CreateSubjectInput) {
@@ -57,12 +85,22 @@ async function getSubjects(query: ListSubjectsQuery) {
 	);
 
 	return await db
-		.select()
+		.select({
+			subject: subjectSelect,
+			department: departmentSelect,
+		})
 		.from(subjects)
+		.innerJoin(departments, eq(subjects.departmentId, departments.id))
 		.where(where)
 		.orderBy(order === "asc" ? asc(subjects.subjectCode) : desc(subjects.subjectCode))
 		.limit(limit)
-		.offset(offset);
+		.offset(offset)
+		.then((rows) =>
+			rows.map((row) => ({
+				...row.subject,
+				department: row.department,
+			}))
+		);
 }
 
 async function getSubjectById(id: string) {

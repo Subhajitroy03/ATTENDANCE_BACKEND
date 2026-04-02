@@ -11,11 +11,12 @@ import {
 
 const departmentsRouter = Router();
 
+departmentsRouter.get("/", getDepartmentsController);
+departmentsRouter.get("/:id", getDepartmentByIdController);
 departmentsRouter.use(restrictToAdminOnly);
 
 departmentsRouter.post("/", createDepartmentController);
-departmentsRouter.get("/", getDepartmentsController);
-departmentsRouter.get("/:id", getDepartmentByIdController);
+
 departmentsRouter.patch("/:id", updateDepartmentController);
 departmentsRouter.delete("/:id", deleteDepartmentController);
 

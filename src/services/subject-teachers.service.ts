@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { asc, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/index.js";
-import { subjectTeachers } from "../db/schema.js";
+import { departments, subjectTeachers, subjects, teachers } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import {
 	buildWhere,
@@ -28,14 +28,70 @@ export interface ListSubjectTeachersQuery extends PaginationInput {
 	isActive?: unknown;
 }
 
+const mappingSelect = {
+	id: subjectTeachers.id,
+	subjectId: subjectTeachers.subjectId,
+	teacherId: subjectTeachers.teacherId,
+	isActive: subjectTeachers.isActive,
+	assignedAt: subjectTeachers.assignedAt,
+};
+
+const subjectSelect = {
+	id: subjects.id,
+	subjectCode: subjects.subjectCode,
+	subjectName: subjects.subjectName,
+	departmentId: subjects.departmentId,
+	semester: subjects.semester,
+	credits: subjects.credits,
+};
+
+const teacherSelect = {
+	id: teachers.id,
+	employeeId: teachers.employeeId,
+	name: teachers.name,
+	email: teachers.email,
+	abbreviation: teachers.abbreviation,
+	phone: teachers.phone,
+	photo: teachers.photo,
+	departmentId: teachers.departmentId,
+	status: teachers.status,
+	role: teachers.role,
+	verified: teachers.verified,
+	createdAt: teachers.createdAt,
+	updatedAt: teachers.updatedAt,
+};
+
+const departmentSelect = {
+	id: departments.id,
+	name: departments.name,
+	code: departments.code,
+	createdAt: departments.createdAt,
+};
+
 async function getMappingOrThrow(id: string) {
 	const rows = await db
-		.select()
+		.select({
+			mapping: mappingSelect,
+			subject: subjectSelect,
+			subjectDepartment: departmentSelect,
+			teacher: teacherSelect,
+		})
 		.from(subjectTeachers)
+		.innerJoin(subjects, eq(subjectTeachers.subjectId, subjects.id))
+		.innerJoin(teachers, eq(subjectTeachers.teacherId, teachers.id))
+		.innerJoin(departments, eq(subjects.departmentId, departments.id))
 		.where(eq(subjectTeachers.id, id))
 		.limit(1);
 	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Subject-teacher mapping not found");
-	return rows[0];
+	const row = rows[0];
+	return {
+		...row.mapping,
+		subject: {
+			...row.subject,
+			department: row.subjectDepartment,
+		},
+		teacher: row.teacher,
+	};
 }
 
 async function createSubjectTeacher(input: CreateSubjectTeacherInput) {
@@ -56,12 +112,35 @@ async function getSubjectTeachers(query: ListSubjectTeachersQuery) {
 	);
 
 	return await db
-		.select()
+		.select({
+			mapping: mappingSelect,
+			subject: subjectSelect,
+			subjectDepartment: {
+				id: departments.id,
+				name: departments.name,
+				code: departments.code,
+				createdAt: departments.createdAt,
+			},
+			teacher: teacherSelect,
+		})
 		.from(subjectTeachers)
+		.innerJoin(subjects, eq(subjectTeachers.subjectId, subjects.id))
+		.innerJoin(teachers, eq(subjectTeachers.teacherId, teachers.id))
+		.innerJoin(departments, eq(subjects.departmentId, departments.id))
 		.where(where)
 		.orderBy(order === "asc" ? asc(subjectTeachers.assignedAt) : desc(subjectTeachers.assignedAt))
 		.limit(limit)
-		.offset(offset);
+		.offset(offset)
+		.then((rows) =>
+			rows.map((row) => ({
+				...row.mapping,
+				subject: {
+					...row.subject,
+					department: row.subjectDepartment,
+				},
+				teacher: row.teacher,
+			}))
+		);
 }
 
 async function getSubjectTeacherById(id: string) {

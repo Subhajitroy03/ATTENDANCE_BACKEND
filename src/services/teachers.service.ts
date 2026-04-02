@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { asc, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/index.js";
-import { teachers } from "../db/schema.js";
+import { departments, teachers } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import { assertAotEduEmail, normalizeEmail } from "../utils/email.js";
 import { comparePassword, hashPassword } from "../utils/hashPass.js";
@@ -22,6 +22,7 @@ export interface CreateTeacherInput {
 	email: string;
 	abbreviation?: string;
 	phone?: string;
+	photo?: string;
 	departmentId: string;
 	password: string;
 }
@@ -32,6 +33,7 @@ export interface UpdateTeacherInput {
 	email?: string;
 	abbreviation?: string;
 	phone?: string;
+	photo?: string;
 	departmentId?: string;
 	password?: string;
 	status?: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "GRADUATED";
@@ -57,6 +59,7 @@ const teacherPublicSelect = {
 	email: teachers.email,
 	abbreviation: teachers.abbreviation,
 	phone: teachers.phone,
+	photo: teachers.photo,
 	departmentId: teachers.departmentId,
 	status: teachers.status,
 	role: teachers.role,
@@ -70,14 +73,29 @@ const teacherAuthSelect = {
 	password: teachers.password,
 };
 
+const departmentSelect = {
+	id: departments.id,
+	name: departments.name,
+	code: departments.code,
+	createdAt: departments.createdAt,
+};
+
 async function getTeacherOrThrow(id: string) {
 	const rows = await db
-		.select(teacherPublicSelect)
+		.select({
+			teacher: teacherPublicSelect,
+			department: departmentSelect,
+		})
 		.from(teachers)
+		.innerJoin(departments, eq(teachers.departmentId, departments.id))
 		.where(eq(teachers.id, id))
 		.limit(1);
 	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Teacher not found");
-	return rows[0];
+	const row = rows[0];
+	return {
+		...row.teacher,
+		department: row.department,
+	};
 }
 
 async function createTeacher(input: CreateTeacherInput) {
@@ -93,6 +111,7 @@ async function createTeacher(input: CreateTeacherInput) {
 			email,
 			abbreviation: input.abbreviation,
 			phone: input.phone,
+			photo: input.photo,
 			departmentId: input.departmentId,
 			password,
 		})
@@ -160,12 +179,22 @@ async function getTeachers(query: ListTeachersQuery) {
 	);
 
 	return await db
-		.select(teacherPublicSelect)
+		.select({
+			teacher: teacherPublicSelect,
+			department: departmentSelect,
+		})
 		.from(teachers)
+		.innerJoin(departments, eq(teachers.departmentId, departments.id))
 		.where(where)
 		.orderBy(order === "asc" ? asc(teachers.createdAt) : desc(teachers.createdAt))
 		.limit(limit)
-		.offset(offset);
+		.offset(offset)
+		.then((rows) =>
+			rows.map((row) => ({
+				...row.teacher,
+				department: row.department,
+			}))
+		);
 }
 
 async function getTeacherById(id: string) {
@@ -184,6 +213,7 @@ async function updateTeacher(id: string, input: UpdateTeacherInput) {
 	}
 	if (input.abbreviation !== undefined) patch.abbreviation = input.abbreviation;
 	if (input.phone !== undefined) patch.phone = input.phone;
+	if (input.photo !== undefined) patch.photo = input.photo;
 	if (input.departmentId !== undefined) patch.departmentId = input.departmentId;
 	if (input.password !== undefined) patch.password = await hashPassword(input.password);
 	if (input.status !== undefined) patch.status = input.status as any;

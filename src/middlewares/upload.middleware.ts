@@ -2,11 +2,8 @@ import multer from "multer";
 import multerConfig from "../config/multer.config";
 import type { NextFunction, Request, Response } from "express";
 
-// create multer instance (NOT single/array here)
-const upload = multerConfig(
-    "media/",
-    1024 * 1024 * 1024
-);
+const studentUpload = multerConfig("student", 10 * 1024 * 1024);
+const teacherUpload = multerConfig("teacher", 10 * 1024 * 1024);
 
 // reusable error handler wrapper
 const handleUpload = (middleware: any) => {
@@ -16,7 +13,7 @@ const handleUpload = (middleware: any) => {
                 if (err.code === "LIMIT_FILE_SIZE") {
                     return res.status(400).json({
                         success: false,
-                        message: "File too large (max 1GB)",
+                        message: "File too large (max 10MB)",
                     });
                 }
 
@@ -35,7 +32,15 @@ const handleUpload = (middleware: any) => {
     };
 };
 
-export const uploadSingle = (fieldName: string) => {
+export const uploadSingle = (
+    fieldName: string,
+    folderName = "media",
+    fileSize = 10 * 1024 * 1024
+) => {
+    const upload = multerConfig(folderName, fileSize);
     const uploadSingleMiddleware = upload.single(fieldName);
     return handleUpload(uploadSingleMiddleware);
 };
+
+export const uploadStudentPhoto = handleUpload(studentUpload.single("photo"));
+export const uploadTeacherPhoto = handleUpload(teacherUpload.single("photo"));

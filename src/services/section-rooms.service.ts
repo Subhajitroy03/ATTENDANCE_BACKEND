@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { eq } from "drizzle-orm";
 
 import { db } from "../db/index.js";
-import { sectionRooms } from "../db/schema.js";
+import { rooms, sectionRooms, sections } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import { buildWhere, parsePagination, parseString, type PaginationInput } from "../utils/listQuery.js";
 
@@ -21,10 +21,50 @@ export interface ListSectionRoomsQuery extends PaginationInput {
 	roomId?: unknown;
 }
 
+const mappingSelect = {
+	id: sectionRooms.id,
+	sectionId: sectionRooms.sectionId,
+	roomId: sectionRooms.roomId,
+};
+
+const sectionSelect = {
+	id: sections.id,
+	departmentId: sections.departmentId,
+	semester: sections.semester,
+	section: sections.section,
+	classTeacherId: sections.classTeacherId,
+	name: sections.name,
+	capacity: sections.capacity,
+	createdAt: sections.createdAt,
+};
+
+const roomSelect = {
+	id: rooms.id,
+	roomNumber: rooms.roomNumber,
+	capacity: rooms.capacity,
+	block: rooms.block,
+	floor: rooms.floor,
+};
+
 async function getMappingOrThrow(id: string) {
-	const rows = await db.select().from(sectionRooms).where(eq(sectionRooms.id, id)).limit(1);
+	const rows = await db
+		.select({
+			mapping: mappingSelect,
+			section: sectionSelect,
+			room: roomSelect,
+		})
+		.from(sectionRooms)
+		.innerJoin(sections, eq(sectionRooms.sectionId, sections.id))
+		.innerJoin(rooms, eq(sectionRooms.roomId, rooms.id))
+		.where(eq(sectionRooms.id, id))
+		.limit(1);
 	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Section-room mapping not found");
-	return rows[0];
+	const row = rows[0];
+	return {
+		...row.mapping,
+		section: row.section,
+		room: row.room,
+	};
 }
 
 async function createSectionRoom(input: CreateSectionRoomInput) {
@@ -40,7 +80,25 @@ async function getSectionRooms(query: ListSectionRoomsQuery) {
 		sectionId ? eq(sectionRooms.sectionId, sectionId) : undefined,
 		roomId ? eq(sectionRooms.roomId, roomId) : undefined
 	);
-	return await db.select().from(sectionRooms).where(where).limit(limit).offset(offset);
+	return await db
+		.select({
+			mapping: mappingSelect,
+			section: sectionSelect,
+			room: roomSelect,
+		})
+		.from(sectionRooms)
+		.innerJoin(sections, eq(sectionRooms.sectionId, sections.id))
+		.innerJoin(rooms, eq(sectionRooms.roomId, rooms.id))
+		.where(where)
+		.limit(limit)
+		.offset(offset)
+		.then((rows) =>
+			rows.map((row) => ({
+				...row.mapping,
+				section: row.section,
+				room: row.room,
+			}))
+		);
 }
 
 async function getSectionRoomById(id: string) {

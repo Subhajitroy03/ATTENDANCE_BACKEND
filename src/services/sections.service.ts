@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { asc, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/index.js";
-import { sections } from "../db/schema.js";
+import { departments, sections, teachers } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import {
 	buildSearch,
@@ -38,10 +38,59 @@ export interface ListSectionsQuery extends PaginationInput {
 	section?: unknown;
 }
 
+const sectionSelect = {
+	id: sections.id,
+	departmentId: sections.departmentId,
+	semester: sections.semester,
+	section: sections.section,
+	classTeacherId: sections.classTeacherId,
+	name: sections.name,
+	capacity: sections.capacity,
+	createdAt: sections.createdAt,
+};
+
+const departmentSelect = {
+	id: departments.id,
+	name: departments.name,
+	code: departments.code,
+	createdAt: departments.createdAt,
+};
+
+const classTeacherSelect = {
+	id: teachers.id,
+	employeeId: teachers.employeeId,
+	name: teachers.name,
+	email: teachers.email,
+	abbreviation: teachers.abbreviation,
+	phone: teachers.phone,
+	photo: teachers.photo,
+	departmentId: teachers.departmentId,
+	status: teachers.status,
+	role: teachers.role,
+	verified: teachers.verified,
+	createdAt: teachers.createdAt,
+	updatedAt: teachers.updatedAt,
+};
+
 async function getSectionOrThrow(id: string) {
-	const rows = await db.select().from(sections).where(eq(sections.id, id)).limit(1);
+	const rows = await db
+		.select({
+			section: sectionSelect,
+			department: departmentSelect,
+			classTeacher: classTeacherSelect,
+		})
+		.from(sections)
+		.innerJoin(departments, eq(sections.departmentId, departments.id))
+		.leftJoin(teachers, eq(sections.classTeacherId, teachers.id))
+		.where(eq(sections.id, id))
+		.limit(1);
 	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Section not found");
-	return rows[0];
+	const row = rows[0];
+	return {
+		...row.section,
+		department: row.department,
+		classTeacher: row.classTeacher,
+	};
 }
 
 async function createSection(input: CreateSectionInput) {
@@ -62,12 +111,25 @@ async function getSections(query: ListSectionsQuery) {
 	);
 
 	return await db
-		.select()
+		.select({
+			section: sectionSelect,
+			department: departmentSelect,
+			classTeacher: classTeacherSelect,
+		})
 		.from(sections)
+		.innerJoin(departments, eq(sections.departmentId, departments.id))
+		.leftJoin(teachers, eq(sections.classTeacherId, teachers.id))
 		.where(where)
 		.orderBy(order === "asc" ? asc(sections.createdAt) : desc(sections.createdAt))
 		.limit(limit)
-		.offset(offset);
+		.offset(offset)
+		.then((rows) =>
+			rows.map((row) => ({
+				...row.section,
+				department: row.department,
+				classTeacher: row.classTeacher,
+			}))
+		);
 }
 
 async function getSectionById(id: string) {

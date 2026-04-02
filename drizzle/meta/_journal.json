@@ -36,6 +36,20 @@
       "when": 1775109067827,
       "tag": "0004_absurd_sphinx",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775174400000,
+      "tag": "0005_bright_photos",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775174460000,
+      "tag": "0006_student_section_relation",
+      "breakpoints": true
     }
   ]
 }

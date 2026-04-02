@@ -11,11 +11,12 @@ import {
 
 const sectionsRouter = Router();
 
+sectionsRouter.get("/", getSectionsController);
+sectionsRouter.get("/:id", getSectionByIdController);
+
 sectionsRouter.use(restrictToAdminOnly);
 
 sectionsRouter.post("/", createSectionController);
-sectionsRouter.get("/", getSectionsController);
-sectionsRouter.get("/:id", getSectionByIdController);
 sectionsRouter.patch("/:id", updateSectionController);
 sectionsRouter.delete("/:id", deleteSectionController);
 

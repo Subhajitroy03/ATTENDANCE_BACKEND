@@ -17,6 +17,7 @@ export const createTeacherSchema = z.object({
 		.refine((v) => isAotEduEmail(v), { message: "Email must end with @aot.edu.in" }),
 	abbreviation: z.string().min(1).max(10).optional(),
 	phone: z.string().min(5).max(20).optional(),
+	photo: z.string().url().optional(),
 	departmentId: z.string().uuid({ message: "Invalid departmentId" }),
 	password: z.string().min(8, { message: "Password must be at least 8 characters" }),
 });
@@ -33,6 +34,7 @@ export const updateTeacherSchema = z
 			.optional(),
 		abbreviation: z.string().min(1).max(10).optional(),
 		phone: z.string().min(5).max(20).optional(),
+		photo: z.string().url().optional(),
 		departmentId: z.string().uuid().optional(),
 		password: z.string().min(8).optional(),
 		status: teacherStatusSchema.optional(),

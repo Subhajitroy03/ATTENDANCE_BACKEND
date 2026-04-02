@@ -80,16 +80,160 @@ async function getAttendance(query: ListAttendanceQuery) {
 	);
 
 	return await db
-		.select()
+		.select({
+			record: {
+				id: attendance.id,
+				classSessionId: attendance.classSessionId,
+				studentId: attendance.studentId,
+				status: attendance.status,
+				markedBy: attendance.markedBy,
+				createdAt: attendance.createdAt,
+			},
+			classSession: {
+				id: classSessions.id,
+				timetableSlotId: classSessions.timetableSlotId,
+				date: classSessions.date,
+				status: classSessions.status,
+				teacherConfirmed: classSessions.teacherConfirmed,
+				startTime: classSessions.startTime,
+				endTime: classSessions.endTime,
+			},
+			timetableSlot: {
+				id: timetableSlots.id,
+				sectionId: timetableSlots.sectionId,
+				dayOfWeek: timetableSlots.dayOfWeek,
+				startTime: timetableSlots.startTime,
+				endTime: timetableSlots.endTime,
+				subjectId: timetableSlots.subjectId,
+				teacherId: timetableSlots.teacherId,
+				roomId: timetableSlots.roomId,
+			},
+			student: {
+				id: students.id,
+				studentId: students.studentId,
+				name: students.name,
+				email: students.email,
+				sectionId: students.sectionId,
+				photo: students.photo,
+				status: students.status,
+				verified: students.verified,
+				role: students.role,
+				createdAt: students.createdAt,
+				updatedAt: students.updatedAt,
+			},
+			section: {
+				id: sections.id,
+				departmentId: sections.departmentId,
+				semester: sections.semester,
+				section: sections.section,
+				classTeacherId: sections.classTeacherId,
+				name: sections.name,
+				capacity: sections.capacity,
+				createdAt: sections.createdAt,
+			},
+		})
 		.from(attendance)
+		.innerJoin(classSessions, eq(attendance.classSessionId, classSessions.id))
+		.innerJoin(timetableSlots, eq(classSessions.timetableSlotId, timetableSlots.id))
+		.innerJoin(students, eq(attendance.studentId, students.id))
+		.innerJoin(sections, eq(students.sectionId, sections.id))
 		.where(where)
 		.orderBy(order === "asc" ? asc(attendance.createdAt) : desc(attendance.createdAt))
 		.limit(limit)
-		.offset(offset);
+		.offset(offset)
+		.then((rows) =>
+			rows.map((row) => ({
+				...row.record,
+				classSession: {
+					...row.classSession,
+					timetableSlot: row.timetableSlot,
+				},
+				student: {
+					...row.student,
+					section: row.section,
+				},
+			}))
+		);
 }
 
 async function getAttendanceById(id: string) {
-	return await getAttendanceOrThrow(id);
+	const rows = await db
+		.select({
+			record: {
+				id: attendance.id,
+				classSessionId: attendance.classSessionId,
+				studentId: attendance.studentId,
+				status: attendance.status,
+				markedBy: attendance.markedBy,
+				createdAt: attendance.createdAt,
+			},
+			classSession: {
+				id: classSessions.id,
+				timetableSlotId: classSessions.timetableSlotId,
+				date: classSessions.date,
+				status: classSessions.status,
+				teacherConfirmed: classSessions.teacherConfirmed,
+				startTime: classSessions.startTime,
+				endTime: classSessions.endTime,
+			},
+			timetableSlot: {
+				id: timetableSlots.id,
+				sectionId: timetableSlots.sectionId,
+				dayOfWeek: timetableSlots.dayOfWeek,
+				startTime: timetableSlots.startTime,
+				endTime: timetableSlots.endTime,
+				subjectId: timetableSlots.subjectId,
+				teacherId: timetableSlots.teacherId,
+				roomId: timetableSlots.roomId,
+			},
+			student: {
+				id: students.id,
+				studentId: students.studentId,
+				name: students.name,
+				email: students.email,
+				sectionId: students.sectionId,
+				photo: students.photo,
+				status: students.status,
+				verified: students.verified,
+				role: students.role,
+				createdAt: students.createdAt,
+				updatedAt: students.updatedAt,
+			},
+			section: {
+				id: sections.id,
+				departmentId: sections.departmentId,
+				semester: sections.semester,
+				section: sections.section,
+				classTeacherId: sections.classTeacherId,
+				name: sections.name,
+				capacity: sections.capacity,
+				createdAt: sections.createdAt,
+			},
+		})
+		.from(attendance)
+		.innerJoin(classSessions, eq(attendance.classSessionId, classSessions.id))
+		.innerJoin(timetableSlots, eq(classSessions.timetableSlotId, timetableSlots.id))
+		.innerJoin(students, eq(attendance.studentId, students.id))
+		.innerJoin(sections, eq(students.sectionId, sections.id))
+		.where(eq(attendance.id, id))
+		.limit(1);
+
+	if (!rows.length) {
+		throw new ApiError(StatusCodes.NOT_FOUND, "Attendance record not found");
+	}
+
+	const row = rows[0];
+	return {
+		...row.record,
+		classSession: {
+			...row.classSession,
+			timetableSlot: row.timetableSlot,
+		},
+		student: {
+			...row.student,
+			section: row.section,
+		},
+	};
 }
 
 async function updateAttendance(id: string, input: UpdateAttendanceInput) {
@@ -112,10 +256,12 @@ async function getMySubjectAttendanceSummary(studentId: string): Promise<Student
 	const studentRows = await db
 		.select({
 			id: students.id,
-			departmentId: students.departmentId,
-			semester: students.semester,
+			sectionId: students.sectionId,
+			departmentId: sections.departmentId,
+			semester: sections.semester,
 		})
 		.from(students)
+		.innerJoin(sections, eq(students.sectionId, sections.id))
 		.where(eq(students.id, studentId))
 		.limit(1);
 

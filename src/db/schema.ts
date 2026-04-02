@@ -92,6 +92,7 @@ export const teachers = pgTable("teachers", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   abbreviation: varchar("abbreviation", { length: 10 }).unique(),
   phone: varchar("phone", { length: 20 }),
+  photo: text("photo"),
   departmentId: uuid("department_id")
     .notNull()
     .references(() => departments.id),
@@ -118,13 +119,12 @@ export const students = pgTable("students", {
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
 
-  departmentId: uuid("department_id")
+  sectionId: uuid("section_id")
     .notNull()
-    .references(() => departments.id),
+    .references(() => sections.id),
 
-  semester: integer("semester").notNull(),
-  section: varchar("section", { length: 50 }).notNull(),
-password: text("password"),
+  photo: text("photo"),
+  password: text("password"),
   refreshToken: text("refresh_token"),
   
   status: userStatusEnum("status").default("ACTIVE"),
@@ -132,26 +132,6 @@ password: text("password"),
   role: varchar("role", { length: 50 }).notNull().default("student"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-/* =========================
-   STUDENT FACES
-========================= */
-
-export const studentFaces = pgTable("student_faces", {
-  id: uuid("id").primaryKey().defaultRandom(),
-
-  studentId: uuid("student_id")
-    .notNull()
-    .references(() => students.id),
-
-  faceEmbedding: text("face_embedding"),
-  faceImageUrl: text("face_image_url").notNull(),
-
-  version: integer("version").notNull(),
-  isActive: boolean("is_active").default(true),
-
-  createdAt: timestamp("created_at").defaultNow(),
 });
 
 /* =========================

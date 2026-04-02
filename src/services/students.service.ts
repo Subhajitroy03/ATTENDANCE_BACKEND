@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { and, asc, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/index.js";
-import { students } from "../db/schema.js";
+import { departments, sections, students, teachers } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import { assertAotEduEmail, normalizeEmail } from "../utils/email.js";
 import { generateUserTokenPair, verifyUserRefreshToken } from "../utils/jwt.js";
@@ -10,7 +10,6 @@ import {
 	buildSearch,
 	buildWhere,
 	parseBoolean,
-	parseNumber,
 	parsePagination,
 	parseString,
 	type PaginationInput,
@@ -20,27 +19,23 @@ export interface CreateStudentInput {
 	studentId: string;
 	name: string;
 	email: string;
-	departmentId: string;
-	semester: number;
-	section: string;
+	sectionId: string;
+	photo?: string;
 }
 
 export interface UpdateStudentInput {
 	studentId?: string;
 	name?: string;
 	email?: string;
-	departmentId?: string;
-	semester?: number;
-	section?: string;
+	sectionId?: string;
+	photo?: string;
 	status?: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "GRADUATED";
 	verified?: boolean;
 }
 
 export interface ListStudentsQuery extends PaginationInput {
 	q?: unknown;
-	departmentId?: unknown;
-	semester?: unknown;
-	section?: unknown;
+	sectionId?: unknown;
 	status?: unknown;
 	verified?: unknown;
 }
@@ -50,10 +45,81 @@ export interface LoginStudentInput {
 	email: string;
 }
 
+const studentSelect = {
+	id: students.id,
+	studentId: students.studentId,
+	name: students.name,
+	email: students.email,
+	sectionId: students.sectionId,
+	photo: students.photo,
+	password: students.password,
+	refreshToken: students.refreshToken,
+	status: students.status,
+	verified: students.verified,
+	role: students.role,
+	createdAt: students.createdAt,
+	updatedAt: students.updatedAt,
+};
+
+const sectionSelect = {
+	id: sections.id,
+	departmentId: sections.departmentId,
+	semester: sections.semester,
+	section: sections.section,
+	classTeacherId: sections.classTeacherId,
+	name: sections.name,
+	capacity: sections.capacity,
+	createdAt: sections.createdAt,
+};
+
+const departmentSelect = {
+	id: departments.id,
+	name: departments.name,
+	code: departments.code,
+	createdAt: departments.createdAt,
+};
+
+const teacherSelect = {
+	id: teachers.id,
+	employeeId: teachers.employeeId,
+	name: teachers.name,
+	email: teachers.email,
+	abbreviation: teachers.abbreviation,
+	phone: teachers.phone,
+	photo: teachers.photo,
+	departmentId: teachers.departmentId,
+	status: teachers.status,
+	role: teachers.role,
+	verified: teachers.verified,
+	createdAt: teachers.createdAt,
+	updatedAt: teachers.updatedAt,
+};
+
 async function getStudentOrThrow(id: string) {
-	const rows = await db.select().from(students).where(eq(students.id, id)).limit(1);
+	const rows = await db
+		.select({
+			student: studentSelect,
+			section: sectionSelect,
+			sectionDepartment: departmentSelect,
+			sectionClassTeacher: teacherSelect,
+		})
+		.from(students)
+		.innerJoin(sections, eq(students.sectionId, sections.id))
+		.innerJoin(departments, eq(sections.departmentId, departments.id))
+		.leftJoin(teachers, eq(sections.classTeacherId, teachers.id))
+		.where(eq(students.id, id))
+		.limit(1);
 	if (!rows.length) throw new ApiError(StatusCodes.NOT_FOUND, "Student not found");
-	return rows[0];
+
+	const row = rows[0];
+	return {
+		...row.student,
+		section: {
+			...row.section,
+			department: row.sectionDepartment,
+			classTeacher: row.sectionClassTeacher,
+		},
+	};
 }
 
 async function createStudent(input: CreateStudentInput) {
@@ -64,9 +130,8 @@ async function createStudent(input: CreateStudentInput) {
 			studentId: input.studentId,
 			name: input.name,
 			email: normalizeEmail(input.email),
-			departmentId: input.departmentId,
-			semester: input.semester,
-			section: input.section,
+			sectionId: input.sectionId,
+			photo: input.photo,
 		})
 		.returning();
 
@@ -83,9 +148,8 @@ async function loginStudent(input: LoginStudentInput) {
 			studentId: students.studentId,
 			name: students.name,
 			email: students.email,
-			departmentId: students.departmentId,
-			semester: students.semester,
-			section: students.section,
+			sectionId: students.sectionId,
+			photo: students.photo,
 			status: students.status,
 			verified: students.verified,
 			role: students.role,
@@ -128,27 +192,41 @@ async function loginStudent(input: LoginStudentInput) {
 
 async function getStudents(query: ListStudentsQuery) {
 	const { limit, offset, order } = parsePagination(query);
-	const departmentId = parseString(query.departmentId);
-	const semester = parseNumber(query.semester);
-	const section = parseString(query.section);
+	const sectionId = parseString(query.sectionId);
 	const status = parseString(query.status);
 	const verified = parseBoolean(query.verified);
 	const where = buildWhere(
 		buildSearch(query.q, students.name, students.email, students.studentId),
-		departmentId ? eq(students.departmentId, departmentId) : undefined,
-		semester === undefined ? undefined : eq(students.semester, semester),
-		section ? eq(students.section, section) : undefined,
+		sectionId ? eq(students.sectionId, sectionId) : undefined,
 		status ? eq(students.status, status as any) : undefined,
 		verified === undefined ? undefined : eq(students.verified, verified)
 	);
 
 	return await db
-		.select()
+		.select({
+			student: studentSelect,
+			section: sectionSelect,
+			sectionDepartment: departmentSelect,
+			sectionClassTeacher: teacherSelect,
+		})
 		.from(students)
+		.innerJoin(sections, eq(students.sectionId, sections.id))
+		.innerJoin(departments, eq(sections.departmentId, departments.id))
+		.leftJoin(teachers, eq(sections.classTeacherId, teachers.id))
 		.where(where)
 		.orderBy(order === "asc" ? asc(students.createdAt) : desc(students.createdAt))
 		.limit(limit)
-		.offset(offset);
+		.offset(offset)
+		.then((rows) =>
+			rows.map((row) => ({
+				...row.student,
+				section: {
+					...row.section,
+					department: row.sectionDepartment,
+					classTeacher: row.sectionClassTeacher,
+				},
+			}))
+		);
 }
 
 async function getStudentById(id: string) {
@@ -165,9 +243,8 @@ async function updateStudent(id: string, input: UpdateStudentInput) {
 		assertAotEduEmail(input.email);
 		patch.email = normalizeEmail(input.email);
 	}
-	if (input.departmentId !== undefined) patch.departmentId = input.departmentId;
-	if (input.semester !== undefined) patch.semester = input.semester;
-	if (input.section !== undefined) patch.section = input.section;
+	if (input.sectionId !== undefined) patch.sectionId = input.sectionId;
+	if (input.photo !== undefined) patch.photo = input.photo;
 	if (input.status !== undefined) patch.status = input.status as any;
 	if (input.verified !== undefined) patch.verified = input.verified;
 	patch.updatedAt = new Date();
