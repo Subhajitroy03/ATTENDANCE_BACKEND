@@ -8,6 +8,7 @@ import {
 	createTeacherSchema,
 	loginTeacherSchema,
 	listTeachersQuerySchema,
+	refreshTokenSchema,
 	updateTeacherSchema,
 } from "../validators/teachers.validator.js";
 
@@ -61,6 +62,32 @@ export const loginTeacherController = async (
 				accessToken: result.accessToken,
 				refreshToken: result.refreshToken,
 			},
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const refreshTeacherTokenController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const parsed = refreshTokenSchema.safeParse(req.body);
+		if (!parsed.success) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
+				code: "VALIDATION_ERROR",
+				details: formatZodIssues(parsed.error.issues),
+			});
+		}
+
+		const tokens = await teachersService.getNewAccessToken(parsed.data.refreshToken);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Access token refreshed successfully",
+			data: tokens,
 		});
 	} catch (error) {
 		next(error);
@@ -200,6 +227,7 @@ export const deleteTeacherController = async (
 export const teachersController = {
 	registerTeacherController,
 	loginTeacherController,
+	refreshTeacherTokenController,
 	createTeacherController,
 	getTeachersController,
 	getTeacherByIdController,

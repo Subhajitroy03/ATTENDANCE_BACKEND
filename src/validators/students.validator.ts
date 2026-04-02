@@ -64,3 +64,8 @@ export const loginStudentSchema = z.object({
 		.refine((v) => isAotEduEmail(v), { message: "Email must end with @aot.edu.in" }),
 });
 export type loginStudentSchemaType = z.infer<typeof loginStudentSchema>;
+
+export const refreshTokenSchema = z.object({
+	refreshToken: z.string().min(1, { message: "refreshToken is required" }),
+});
+export type refreshTokenSchemaType = z.infer<typeof refreshTokenSchema>;

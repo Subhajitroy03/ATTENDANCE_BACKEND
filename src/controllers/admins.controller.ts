@@ -7,6 +7,8 @@ import { formatZodIssues } from "../utils/validation.js";
 import {
 	createAdminSchema,
 	listAdminsQuerySchema,
+	loginAdminSchema,
+	refreshTokenSchema,
 	updateAdminSchema,
 	verifyStudentSchema,
 	verifyTeacherSchema,
@@ -141,6 +143,58 @@ export const deleteAdminController = async (
 	}
 };
 
+export const loginAdminController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const parsed = loginAdminSchema.safeParse(req.body);
+		if (!parsed.success) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
+				code: "VALIDATION_ERROR",
+				details: formatZodIssues(parsed.error.issues),
+			});
+		}
+
+		const result = await adminsService.loginAdmin(parsed.data);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Admin login successful",
+			data: result,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const refreshAdminTokenController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const parsed = refreshTokenSchema.safeParse(req.body);
+		if (!parsed.success) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
+				code: "VALIDATION_ERROR",
+				details: formatZodIssues(parsed.error.issues),
+			});
+		}
+
+		const tokens = await adminsService.getNewAccessToken(parsed.data.refreshToken);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Access token refreshed successfully",
+			data: tokens,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
 export const verifyTeacherController = async (
 	req: Request,
 	res: Response,
@@ -216,6 +270,8 @@ export const adminsController = {
 	getAdminByIdController,
 	updateAdminController,
 	deleteAdminController,
+	loginAdminController,
+	refreshAdminTokenController,
 	verifyTeacherController,
 	verifyStudentController,
 };

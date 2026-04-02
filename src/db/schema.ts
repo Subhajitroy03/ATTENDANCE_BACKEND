@@ -61,6 +61,7 @@ export const admins = pgTable("admins", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   password: text("password").notNull(),
+  refreshToken: text("refresh_token"),
   role: varchar("role", { length: 50 }).notNull().default("admin"),
   status: userStatusEnum("status").default("ACTIVE"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -95,6 +96,7 @@ export const teachers = pgTable("teachers", {
     .notNull()
     .references(() => departments.id),
   password: text("password").notNull(),
+  refreshToken: text("refresh_token"),
   status: userStatusEnum("status").default("ACTIVE"),
   role: varchar("role", { length: 50 }).notNull().default("teacher"),
   verified: boolean("verified").default(false),
@@ -122,7 +124,9 @@ export const students = pgTable("students", {
 
   semester: integer("semester").notNull(),
   section: varchar("section", { length: 50 }).notNull(),
-
+password: text("password"),
+  refreshToken: text("refresh_token"),
+  
   status: userStatusEnum("status").default("ACTIVE"),
   verified: boolean("verified").default(false),
   role: varchar("role", { length: 50 }).notNull().default("student"),

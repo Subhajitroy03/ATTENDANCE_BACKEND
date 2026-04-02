@@ -5,7 +5,8 @@ import { db } from "../db/index.js";
 import { admins, students, teachers } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import { assertAotEduEmail, normalizeEmail } from "../utils/email.js";
-import { hashPassword } from "../utils/hashPass.js";
+import { comparePassword, hashPassword } from "../utils/hashPass.js";
+import { generateTokenPair, verifyRefreshToken } from "../utils/jwt.js";
 import {
 	buildSearch,
 	buildWhere,
@@ -15,6 +16,11 @@ import {
 } from "../utils/listQuery.js";
 
 export interface CreateAdminInput {
+	email: string;
+	password: string;
+}
+
+export interface LoginAdminInput {
 	email: string;
 	password: string;
 }
@@ -47,6 +53,11 @@ const adminPublicSelect = {
 	status: admins.status,
 	createdAt: admins.createdAt,
 	updatedAt: admins.updatedAt,
+};
+
+const adminAuthSelect = {
+	...adminPublicSelect,
+	password: admins.password,
 };
 
 const teacherVerifySelect = {
@@ -176,6 +187,82 @@ async function deleteAdmin(id: string) {
 	return deleted;
 }
 
+async function loginAdmin(input: LoginAdminInput) {
+	assertAotEduEmail(input.email);
+	const email = normalizeEmail(input.email);
+
+	const rows = await db
+		.select(adminAuthSelect)
+		.from(admins)
+		.where(eq(admins.email, email))
+		.limit(1);
+
+	if (!rows.length) {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+	}
+
+	const admin = rows[0];
+	const ok = await comparePassword(input.password, admin.password);
+	if (!ok) {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+	}
+	if (admin.status !== "ACTIVE") {
+		throw new ApiError(StatusCodes.FORBIDDEN, "Admin account is not active");
+	}
+
+	const tokens = generateTokenPair({
+		id: admin.id,
+		email: admin.email,
+		role: "admin",
+	});
+
+	// Save refresh token to database
+	await db
+		.update(admins)
+		.set({ refreshToken: tokens.refreshToken, updatedAt: new Date() })
+		.where(eq(admins.id, admin.id));
+
+	// Exclude password from response
+	const { password, ...safeAdmin } = admin;
+	return {
+		admin: safeAdmin,
+		...tokens,
+	};
+}
+
+async function getNewAccessToken(refreshToken: string) {
+	let decoded: { id: string; email: string };
+	try {
+		decoded = verifyRefreshToken(refreshToken);
+	} catch {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid refresh token");
+	}
+
+	const [adminRecord] = await db
+		.select()
+		.from(admins)
+		.where(eq(admins.id, decoded.id))
+		.limit(1);
+
+	if (!adminRecord || adminRecord.refreshToken !== refreshToken) {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid or expired refresh token");
+	}
+
+	const tokenPair = generateTokenPair({
+		id: adminRecord.id,
+		email: adminRecord.email,
+		role: "admin",
+	});
+
+	// Update refresh token in database
+	await db
+		.update(admins)
+		.set({ refreshToken: tokenPair.refreshToken, updatedAt: new Date() })
+		.where(eq(admins.id, adminRecord.id));
+
+	return tokenPair;
+}
+
 async function verifyTeacher(input: VerifyTeacherInput) {
 	await getTeacherOrThrow(input.teacherId);
 	const verified = input.verified ?? true;
@@ -208,6 +295,8 @@ export const adminsService = {
 	getAdminById,
 	updateAdmin,
 	deleteAdmin,
+	loginAdmin,
+	getNewAccessToken,
 	verifyTeacher,
 	verifyStudent,
 	// Aliases (backward compatible)
@@ -216,5 +305,7 @@ export const adminsService = {
 	getById: getAdminById,
 	update: updateAdmin,
 	remove: deleteAdmin,
+	login: loginAdmin,
+	refreshAccessToken: getNewAccessToken,
 };
 

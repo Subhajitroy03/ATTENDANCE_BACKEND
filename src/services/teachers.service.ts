@@ -6,7 +6,7 @@ import { teachers } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import { assertAotEduEmail, normalizeEmail } from "../utils/email.js";
 import { comparePassword, hashPassword } from "../utils/hashPass.js";
-import { generateUserTokenPair } from "../utils/jwt.js";
+import { generateUserTokenPair, verifyUserRefreshToken } from "../utils/jwt.js";
 import {
 	buildSearch,
 	buildWhere,
@@ -133,6 +133,12 @@ async function loginTeacher(input: LoginTeacherInput) {
 		role: "teacher",
 	});
 
+	// Save refresh token to database
+	await db
+		.update(teachers)
+		.set({ refreshToken: tokens.refreshToken, updatedAt: new Date() })
+		.where(eq(teachers.id, teacher.id));
+
 	// Exclude password from response
 	const { password, ...safeTeacher } = teacher;
 	return {
@@ -201,6 +207,39 @@ async function deleteTeacher(id: string) {
 	return deleted;
 }
 
+async function getNewAccessToken(refreshToken: string) {
+	let decoded: { id: string; email: string };
+	try {
+		decoded = verifyUserRefreshToken(refreshToken);
+	} catch {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid refresh token");
+	}
+
+	const [teacherRecord] = await db
+		.select()
+		.from(teachers)
+		.where(eq(teachers.id, decoded.id))
+		.limit(1);
+
+	if (!teacherRecord || teacherRecord.refreshToken !== refreshToken) {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid or expired refresh token");
+	}
+
+	const tokenPair = generateUserTokenPair({
+		id: teacherRecord.id,
+		email: teacherRecord.email,
+		role: "teacher",
+	});
+
+	// Update refresh token in database
+	await db
+		.update(teachers)
+		.set({ refreshToken: tokenPair.refreshToken, updatedAt: new Date() })
+		.where(eq(teachers.id, teacherRecord.id));
+
+	return tokenPair;
+}
+
 export const teachersService = {
 	createTeacher,
 	loginTeacher,
@@ -208,6 +247,7 @@ export const teachersService = {
 	getTeacherById,
 	updateTeacher,
 	deleteTeacher,
+	getNewAccessToken,
 	// Aliases (backward compatible)
 	create: createTeacher,
 	login: loginTeacher,
@@ -215,4 +255,5 @@ export const teachersService = {
 	getById: getTeacherById,
 	update: updateTeacher,
 	remove: deleteTeacher,
+	refreshAccessToken: getNewAccessToken,
 };

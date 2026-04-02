@@ -8,6 +8,7 @@ import {
 	createStudentSchema,
 	loginStudentSchema,
 	listStudentsQuerySchema,
+	refreshTokenSchema,
 	updateStudentSchema,
 } from "../validators/students.validator.js";
 
@@ -61,6 +62,32 @@ export const loginStudentController = async (
 				accessToken: result.accessToken,
 				refreshToken: result.refreshToken,
 			},
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const refreshStudentTokenController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		const parsed = refreshTokenSchema.safeParse(req.body);
+		if (!parsed.success) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
+				code: "VALIDATION_ERROR",
+				details: formatZodIssues(parsed.error.issues),
+			});
+		}
+
+		const tokens = await studentsService.getNewAccessToken(parsed.data.refreshToken);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Access token refreshed successfully",
+			data: tokens,
 		});
 	} catch (error) {
 		next(error);
@@ -200,6 +227,7 @@ export const deleteStudentController = async (
 export const studentsController = {
 	registerStudentController,
 	loginStudentController,
+	refreshStudentTokenController,
 	createStudentController,
 	getStudentsController,
 	getStudentByIdController,

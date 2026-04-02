@@ -5,6 +5,8 @@ import {
 	deleteAdminController,
 	getAdminByIdController,
 	getAdminsController,
+	loginAdminController,
+	refreshAdminTokenController,
 	updateAdminController,
 	verifyStudentController,
 	verifyTeacherController,
@@ -12,10 +14,11 @@ import {
 import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
 
 const adminsRouter = Router();
-
+adminsRouter.post("/login", loginAdminController);
+adminsRouter.post("/refresh", refreshAdminTokenController);
+adminsRouter.post("/", createAdminController);
 adminsRouter.use(restrictToAdminOnly);
 
-adminsRouter.post("/", createAdminController);
 adminsRouter.get("/", getAdminsController);
 adminsRouter.get("/:id", getAdminByIdController);
 adminsRouter.patch("/:id", updateAdminController);

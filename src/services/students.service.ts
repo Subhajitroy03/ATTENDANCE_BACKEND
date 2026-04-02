@@ -5,7 +5,7 @@ import { db } from "../db/index.js";
 import { students } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import { assertAotEduEmail, normalizeEmail } from "../utils/email.js";
-import { generateUserTokenPair } from "../utils/jwt.js";
+import { generateUserTokenPair, verifyUserRefreshToken } from "../utils/jwt.js";
 import {
 	buildSearch,
 	buildWhere,
@@ -114,6 +114,12 @@ async function loginStudent(input: LoginStudentInput) {
 		role: "student",
 	});
 
+	// Save refresh token to database
+	await db
+		.update(students)
+		.set({ refreshToken: tokens.refreshToken, updatedAt: new Date() })
+		.where(eq(students.id, student.id));
+
 	return {
 		student,
 		...tokens,
@@ -180,6 +186,39 @@ async function deleteStudent(id: string) {
 	return deleted;
 }
 
+async function getNewAccessToken(refreshToken: string) {
+	let decoded: { id: string; email: string };
+	try {
+		decoded = verifyUserRefreshToken(refreshToken);
+	} catch {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid refresh token");
+	}
+
+	const [studentRecord] = await db
+		.select()
+		.from(students)
+		.where(eq(students.id, decoded.id))
+		.limit(1);
+
+	if (!studentRecord || studentRecord.refreshToken !== refreshToken) {
+		throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid or expired refresh token");
+	}
+
+	const tokenPair = generateUserTokenPair({
+		id: studentRecord.id,
+		email: studentRecord.email,
+		role: "student",
+	});
+
+	// Update refresh token in database
+	await db
+		.update(students)
+		.set({ refreshToken: tokenPair.refreshToken, updatedAt: new Date() })
+		.where(eq(students.id, studentRecord.id));
+
+	return tokenPair;
+}
+
 export const studentsService = {
 	createStudent,
 	loginStudent,
@@ -187,6 +226,7 @@ export const studentsService = {
 	getStudentById,
 	updateStudent,
 	deleteStudent,
+	getNewAccessToken,
 	// Aliases (backward compatible)
 	create: createStudent,
 	login: loginStudent,
@@ -194,4 +234,5 @@ export const studentsService = {
 	getById: getStudentById,
 	update: updateStudent,
 	remove: deleteStudent,
+	refreshAccessToken: getNewAccessToken,
 };

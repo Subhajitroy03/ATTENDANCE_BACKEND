@@ -64,3 +64,8 @@ export const loginTeacherSchema = z.object({
 	password: z.string().min(1, { message: "password is required" }),
 });
 export type loginTeacherSchemaType = z.infer<typeof loginTeacherSchema>;
+
+export const refreshTokenSchema = z.object({
+	refreshToken: z.string().min(1, { message: "refreshToken is required" }),
+});
+export type refreshTokenSchemaType = z.infer<typeof refreshTokenSchema>;

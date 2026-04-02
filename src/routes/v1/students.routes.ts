@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
 	loginStudentController,
 	registerStudentController,
+	refreshStudentTokenController,
 	createStudentController,
 	deleteStudentController,
 	getStudentByIdController,
@@ -15,6 +16,7 @@ const studentsRouter = Router();
 
 studentsRouter.post("/register", registerStudentController);
 studentsRouter.post("/login", loginStudentController);
+studentsRouter.post("/refresh", refreshStudentTokenController);
 
 // Everything else is admin-controlled
 studentsRouter.use(restrictToAdminOnly);
