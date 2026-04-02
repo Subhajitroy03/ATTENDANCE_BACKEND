@@ -1,5 +1,5 @@
 import { StatusCodes } from "http-status-codes";
-import { asc, desc, eq, sql, and } from "drizzle-orm";
+import { asc, desc, eq, sql, and, or } from "drizzle-orm";
 
 import { db } from "../db/index.js";
 import {
@@ -8,6 +8,8 @@ import {
 	subjects,
 	students,
 	timetableSlots,
+	sections,
+	teachers,
 } from "../db/schema.js";
 import { ApiError } from "../utils/ApiError.js";
 import {
@@ -188,6 +190,122 @@ async function getMySubjectAttendanceSummary(studentId: string): Promise<Student
 	};
 }
 
+interface TeacherClassAttendanceRecord {
+	attendanceId: string;
+	classSessionId: string;
+	classSessionDate: Date | null;
+	subjectId: string;
+	subjectCode: string;
+	subjectName: string;
+	studentId: string;
+	studentName: string;
+	studentStudentId: string;
+	attendanceStatus: "PRESENT" | "ABSENT" | "LATE";
+	markedBy: string;
+	createdAt: Date | null;
+}
+
+async function getMyTaughtClassesAttendance(teacherId: string, query?: ListAttendanceQuery) {
+	const { limit = 100, offset = 0 } = query ? parsePagination(query) : { limit: 100, offset: 0 };
+
+	// Get all attendance records for classes where this teacher teaches the subject
+	const records = await db
+		.select({
+			attendanceId: attendance.id,
+			classSessionId: classSessions.id,
+			classSessionDate: classSessions.date,
+			subjectId: subjects.id,
+			subjectCode: subjects.subjectCode,
+			subjectName: subjects.subjectName,
+			studentId: students.id,
+			studentName: students.name,
+			studentStudentId: students.studentId,
+			attendanceStatus: attendance.status,
+			markedBy: attendance.markedBy,
+			createdAt: attendance.createdAt,
+		})
+		.from(attendance)
+		.innerJoin(classSessions, eq(attendance.classSessionId, classSessions.id))
+		.innerJoin(timetableSlots, eq(classSessions.timetableSlotId, timetableSlots.id))
+		.innerJoin(subjects, eq(timetableSlots.subjectId, subjects.id))
+		.innerJoin(students, eq(attendance.studentId, students.id))
+		.where(eq(timetableSlots.teacherId, teacherId))
+		.orderBy(desc(classSessions.date))
+		.limit(limit)
+		.offset(offset);
+
+	return records;
+}
+
+async function getMyClassTeacherClassesAttendance(teacherId: string, query?: ListAttendanceQuery) {
+	const { limit = 100, offset = 0 } = query ? parsePagination(query) : { limit: 100, offset: 0 };
+
+	// Get all attendance records for classes in sections where this teacher is the class teacher
+	const records = await db
+		.select({
+			attendanceId: attendance.id,
+			classSessionId: classSessions.id,
+			classSessionDate: classSessions.date,
+			subjectId: subjects.id,
+			subjectCode: subjects.subjectCode,
+			subjectName: subjects.subjectName,
+			studentId: students.id,
+			studentName: students.name,
+			studentStudentId: students.studentId,
+			attendanceStatus: attendance.status,
+			markedBy: attendance.markedBy,
+			createdAt: attendance.createdAt,
+		})
+		.from(attendance)
+		.innerJoin(classSessions, eq(attendance.classSessionId, classSessions.id))
+		.innerJoin(timetableSlots, eq(classSessions.timetableSlotId, timetableSlots.id))
+		.innerJoin(subjects, eq(timetableSlots.subjectId, subjects.id))
+		.innerJoin(students, eq(attendance.studentId, students.id))
+		.innerJoin(sections, eq(timetableSlots.sectionId, sections.id))
+		.where(eq(sections.classTeacherId, teacherId))
+		.orderBy(desc(classSessions.date))
+		.limit(limit)
+		.offset(offset);
+
+	return records;
+}
+
+// Verify if a teacher can edit an attendance record
+async function canTeacherEditAttendance(attendanceId: string, teacherId: string): Promise<boolean> {
+	const record = await db
+		.select({
+			classSessionId: classSessions.id,
+		})
+		.from(attendance)
+		.innerJoin(classSessions, eq(attendance.classSessionId, classSessions.id))
+		.innerJoin(timetableSlots, eq(classSessions.timetableSlotId, timetableSlots.id))
+		.where(eq(attendance.id, attendanceId))
+		.limit(1);
+
+	if (!record.length) {
+		return false;
+	}
+
+	// Check if teacher teaches this class or is class teacher
+	const timetableRecord = await db
+		.select()
+		.from(timetableSlots)
+		.innerJoin(classSessions, eq(classSessions.timetableSlotId, timetableSlots.id))
+		.innerJoin(sections, eq(timetableSlots.sectionId, sections.id))
+		.where(
+			and(
+				eq(classSessions.id, record[0].classSessionId),
+				or(
+					eq(timetableSlots.teacherId, teacherId),
+					eq(sections.classTeacherId, teacherId)
+				)
+			)
+		)
+		.limit(1);
+
+	return timetableRecord.length > 0;
+}
+
 export const attendanceService = {
 	createAttendance,
 	getAttendance,
@@ -195,6 +313,9 @@ export const attendanceService = {
 	updateAttendance,
 	deleteAttendance,
 	getMySubjectAttendanceSummary,
+	getMyTaughtClassesAttendance,
+	getMyClassTeacherClassesAttendance,
+	canTeacherEditAttendance,
 	// Aliases (backward compatible)
 	create: createAttendance,
 	list: getAttendance,

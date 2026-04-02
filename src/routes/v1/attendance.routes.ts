@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { restrictToStudentOnly } from "../../middlewares/restrictedToStudent.js";
 import { restrictToAdminOnly } from "../../middlewares/restrictedToAdmin.js";
+import { restrictToTeacherOnly } from "../../middlewares/restrictedToTeacher.js";
 
 import {
 	createAttendanceController,
@@ -10,13 +11,37 @@ import {
 	getAttendanceController,
 	getMySubjectAttendanceSummaryController,
 	updateAttendanceController,
+	getMyTaughtClassesAttendanceController,
+	getMyClassTeacherClassesAttendanceController,
+	updateAttendanceAsTeacherController,
 } from "../../controllers/attendance.controller.js";
 
 const attendanceRouter = Router();
+
+// Student routes
 attendanceRouter.get(
 	"/my-summary",
 	restrictToStudentOnly,
 	getMySubjectAttendanceSummaryController
+);
+
+// Teacher routes
+attendanceRouter.get(
+	"/teacher/my-taught-classes",
+	restrictToTeacherOnly,
+	getMyTaughtClassesAttendanceController
+);
+
+attendanceRouter.get(
+	"/teacher/my-class-teacher-classes",
+	restrictToTeacherOnly,
+	getMyClassTeacherClassesAttendanceController
+);
+
+attendanceRouter.patch(
+	"/teacher/:id",
+	restrictToTeacherOnly,
+	updateAttendanceAsTeacherController
 );
 
 // Everything else is admin-controlled

@@ -161,6 +161,100 @@ export const getMySubjectAttendanceSummaryController = async (
 	}
 };
 
+export const getMyTaughtClassesAttendanceController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		if (!req.teacher?.id) {
+			throw new ApiError(StatusCodes.UNAUTHORIZED, "Authentication required");
+		}
+
+		const records = await attendanceService.getMyTaughtClassesAttendance(
+			req.teacher.id,
+			req.query as any
+		);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Attendance records fetched successfully",
+			data: records,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const getMyClassTeacherClassesAttendanceController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		if (!req.teacher?.id) {
+			throw new ApiError(StatusCodes.UNAUTHORIZED, "Authentication required");
+		}
+
+		const records = await attendanceService.getMyClassTeacherClassesAttendance(
+			req.teacher.id,
+			req.query as any
+		);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Attendance records fetched successfully",
+			data: records,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const updateAttendanceAsTeacherController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		if (!req.teacher?.id) {
+			throw new ApiError(StatusCodes.UNAUTHORIZED, "Authentication required");
+		}
+
+		const id = String(req.params.id ?? "");
+		if (!id) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "id is required");
+		}
+
+		// Check if teacher has permission to edit this attendance
+		const canEdit = await attendanceService.canTeacherEditAttendance(id, req.teacher.id);
+		if (!canEdit) {
+			throw new ApiError(
+				StatusCodes.FORBIDDEN,
+				"You do not have permission to edit this attendance record"
+			);
+		}
+
+		const parsed = updateAttendanceSchema.safeParse(req.body);
+		if (!parsed.success) {
+			throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed", {
+				code: "VALIDATION_ERROR",
+				details: formatZodIssues(parsed.error.issues),
+			});
+		}
+
+		const record = await attendanceService.updateAttendance(id, parsed.data);
+
+		return res.status(StatusCodes.OK).json({
+			success: true,
+			message: "Attendance updated successfully",
+			data: record,
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
 // Backward-compatible export (some files may import this symbol).
 export const attendanceController = {
 	createAttendanceController,
@@ -169,4 +263,7 @@ export const attendanceController = {
 	updateAttendanceController,
 	deleteAttendanceController,
 	getMySubjectAttendanceSummaryController,
+	getMyTaughtClassesAttendanceController,
+	getMyClassTeacherClassesAttendanceController,
+	updateAttendanceAsTeacherController,
 };
