@@ -11,13 +11,7 @@ jobs:
     timeout-minutes: 2
     steps:
       - name: Hit base URL
-        env:
-          BASE_URL: ${{ secrets.BASE_URL }}
         run: |
-          if [ -z "$BASE_URL" ]; then
-            echo "BASE_URL secret is not set."
-            exit 1
-          fi
-
-          echo "Pinging $BASE_URL"
-          curl --fail --silent --show-error --max-time 20 --retry 2 "$BASE_URL"
+          echo "Pinging attendance backend"
+          curl --fail --silent --show-error --max-time 20 --retry 2 \
+          https://attendance-backend-dmce.onrender.com
